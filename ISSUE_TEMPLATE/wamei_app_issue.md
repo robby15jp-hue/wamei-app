@@ -1,0 +1,49 @@
+# 和名変換アプリの作成
+
+## 概要
+ローマ字の名前を入力すると、簡易的なルールで和名を返すWebアプリを作成したいです。
+
+## 目的
+- 名前変換のデモアプリとして機能
+- 学習・遊び目的で使用
+
+## HTMLサンプル
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>和名変換アプリ</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 50px; }
+    input, button { padding: 10px; margin: 5px; font-size: 1em; }
+    #result { margin-top: 20px; font-size: 1.5em; color: darkblue; }
+  </style>
+</head>
+<body>
+  <h1>🌸 和名変換アプリ 🌸</h1>
+  <p>ローマ字の名前を入力してください</p>
+  <input id="nameInput" type="text" placeholder="例: John">
+  <button onclick="convertName()">変換する</button>
+  <div id="result"></div>
+  <script>
+    const nameMap = {
+      "john": "城安 (じょうあん)",
+      "michael": "美輝 (みき)",
+      "sarah": "咲良 (さくら)",
+      "david": "大翔 (ひろと)",
+      "anna": "杏奈 (あんな)"
+    };
+    function convertName() {
+      const input = document.getElementById("nameInput").value.trim().toLowerCase();
+      const resultDiv = document.getElementById("result");
+      if (nameMap[input]) {
+        resultDiv.innerHTML = "✨ あなたの和名は <b>" + nameMap[input] + "</b> です！";
+      } else {
+        resultDiv.innerHTML = "⚠️ その名前の変換はまだ登録されていません。";
+      }
+    }
+  </script>
+</body>
+</html>
+```
