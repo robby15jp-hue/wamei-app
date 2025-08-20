@@ -1,37 +1,154 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>和名変換アプリ</title>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 50px; }
-    input, button { padding: 10px; margin: 5px; font-size: 1em; }
-    #result { margin-top: 20px; font-size: 1.5em; color: darkblue; }
+    :root { --gap: 14px; --radius: 12px; }
+    body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 24px; line-height: 1.6; }
+    .card { max-width: 720px; margin: 0 auto; padding: 24px; border: 1px solid #ddd; border-radius: var(--radius); }
+    h1 { margin: 0 0 8px; font-size: 1.4rem; }
+    p.hint { margin: 0 0 16px; color: #666; font-size: 0.95rem; }
+    .row { display: flex; gap: var(--gap); margin-top: var(--gap); flex-wrap: wrap; }
+    input[type="text"] { flex: 1 1 260px; font-size: 1.1rem; padding: 12px; border: 1px solid #ccc; border-radius: var(--radius); }
+    button { font-size: 1.05rem; padding: 10px 14px; border: 1px solid #222; background: #fff; border-radius: 10px; }
+    button:active { transform: translateY(1px); }
+    .result { margin-top: 16px; font-size: 1.3rem; font-weight: 600; }
+    .sub { color: #555; font-size: 0.92rem; }
+    .bar { display: flex; gap: 8px; margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h1>🌸 和名変換アプリ 🌸</h1>
-  <p>ローマ字の名前を入力してください</p>
-  <input id="nameInput" type="text" placeholder="例: John">
-  <button onclick="convertName()">変換する</button>
-  <div id="result"></div>
+  <div class="card">
+    <h1>和名変換アプリ</h1>
+    <p class="hint">英字・かな・カナ いずれもOK。入力に応じて安定した「和名」を生成します。</p>
+    <div class="row">
+      <input id="nameInput" type="text" inputmode="latin-name" placeholder="例) Kohei Watanabe / こへい / コウヘイ" />
+      <button id="convertBtn">変換</button>
+    </div>
+    <div class="result" id="result"></div>
+    <div class="bar">
+      <button id="copyBtn" style="display:none;">コピー</button>
+      <button id="shareBtn" style="display:none;">共有</button>
+    </div>
+    <p class="sub" id="readingHint" style="display:none;"></p>
+  </div>
+
   <script>
-    const nameMap = {
-      "john": "城安 (じょうあん)",
-      "michael": "美輝 (みき)",
-      "sarah": "咲良 (さくら)",
-      "david": "大翔 (ひろと)",
-      "anna": "杏奈 (あんな)"
+    // --- かな・カナ → ローマ字（超簡易版） ---
+    // 実運用ならライブラリ利用が理想だが、ここでは依存ゼロで軽量に
+    const kanaMap = {
+      'あ':'a','い':'i','う':'u','え':'e','お':'o','か':'ka','き':'ki','く':'ku','け':'ke','こ':'ko',
+      'さ':'sa','し':'shi','す':'su','せ':'se','そ':'so','た':'ta','ち':'chi','つ':'tsu','て':'te','と':'to',
+      'な':'na','に':'ni','ぬ':'nu','ね':'ne','の':'no','は':'ha','ひ':'hi','ふ':'fu','へ':'he','ほ':'ho',
+      'ま':'ma','み':'mi','む':'mu','め':'me','も':'mo','や':'ya','ゆ':'yu','よ':'yo',
+      'ら':'ra','り':'ri','る':'ru','れ':'re','ろ':'ro','わ':'wa','を':'o','ん':'n',
+      'が':'ga','ぎ':'gi','ぐ':'gu','げ':'ge','ご':'go','ざ':'za','じ':'ji','ず':'zu','ぜ':'ze','ぞ':'zo',
+      'だ':'da','ぢ':'ji','づ':'zu','で':'de','ど':'do','ば':'ba','び':'bi','ぶ':'bu','べ':'be','ぼ':'bo',
+      'ぱ':'pa','ぴ':'pi','ぷ':'pu','ぺ':'pe','ぽ':'po','きゃ':'kya','きゅ':'kyu','きょ':'kyo',
+      'しゃ':'sha','しゅ':'shu','しょ':'sho','ちゃ':'cha','ちゅ':'chu','ちょ':'cho',
+      'にゃ':'nya','にゅ':'nyu','にょ':'nyo','ひゃ':'hya','ひゅ':'hyu','ひょ':'hyo',
+      'みゃ':'mya','みゅ':'myu','みょ':'myo','りゃ':'rya','りゅ':'ryu','りょ':'ryo',
+      'ぎゃ':'gya','ぎゅ':'gyu','ぎょ':'gyo','じゃ':'ja','じゅ':'ju','じょ':'jo',
+      'びゃ':'bya','びゅ':'byu','びょ':'byo','ぴゃ':'pya','ぴゅ':'pyu','ぴょ':'pyo'
     };
-    function convertName() {
-      const input = document.getElementById("nameInput").value.trim().toLowerCase();
-      const resultDiv = document.getElementById("result");
-      if (nameMap[input]) {
-        resultDiv.innerHTML = "✨ あなたの和名は <b>" + nameMap[input] + "</b> です！";
-      } else {
-        resultDiv.innerHTML = "⚠️ その名前の変換はまだ登録されていません。";
+    const toHiragana = (s) => s.replace(/[ァ-ン]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+    function kanaToRoma(input){
+      let s = toHiragana(input);
+      // 小文字・促音対応
+      s = s.replace(/っ([か-ぽ])/g, (_, c) => (kanaMap[c] ? kanaMap[c][0] : '') + kanaMap[c]);
+      // 拗音（2文字）を先に
+      const keys2 = Object.keys(kanaMap).filter(k => k.length === 2).sort((a,b)=>b.length-a.length);
+      for(const k of keys2){ s = s.replaceAll(k, kanaMap[k]); }
+      // 単音
+      const keys1 = Object.keys(kanaMap).filter(k => k.length === 1);
+      for(const k of keys1){ s = s.replaceAll(k, kanaMap[k]); }
+      return s.replace(/[^a-z]/g,'');
+    }
+
+    // --- 変換ロジック：名前 → 安定ランダム → 漢字連結 ---
+    const kanjiPool = ["光","翔","優","大","幸","健","海","空","絆","蒼","陽","蓮","新","志","匠","慧","拓","結","礼","迅","穂","和","輝","紬","遥","翼","愛","音","燈","芽","凪","芽","結","陽","湊","悠","瑛","玲"];
+    const fallback = ["和","名","生成"];
+
+    function xmur3(str){
+      // 小さなハッシュ（安定性重視）
+      let h = 1779033703 ^ str.length;
+      for (let i=0;i<str.length;i++){
+        h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+        h = (h << 13) | (h >>> 19);
+      }
+      return () => {
+        h = Math.imul(h ^ (h>>>16), 2246822507);
+        h = Math.imul(h ^ (h>>>13), 3266489909);
+        return (h ^= h>>>16) >>> 0;
       }
     }
+
+    function pickKanji(seedStr, count=2){
+      const rand = xmur3(seedStr);
+      const out = [];
+      for(let i=0;i<count;i++){
+        const r = rand() % kanjiPool.length;
+        out.push(kanjiPool[r]);
+      }
+      return out.join('');
+    }
+
+    function normalizeName(raw){
+      const s = raw.trim();
+      if(!s) return '';
+      // ローマ字含むならそのまま、そうでなければ仮名→ローマ字
+      const hasLatin = /[A-Za-z]/.test(s);
+      return hasLatin ? s.toLowerCase().replace(/[^a-z]/g,'') : kanaToRoma(s);
+    }
+
+    function convert(){
+      const raw = document.getElementById('nameInput').value;
+      const norm = normalizeName(raw);
+      const resultEl = document.getElementById('result');
+      const hintEl = document.getElementById('readingHint');
+      const copyBtn = document.getElementById('copyBtn');
+      const shareBtn = document.getElementById('shareBtn');
+
+      if(!norm){
+        resultEl.textContent = "名前を入力してください。";
+        hintEl.style.display = 'none';
+        copyBtn.style.display = 'none';
+        shareBtn.style.display = 'none';
+        return;
+      }
+      const len = Math.min(3, Math.max(2, Math.ceil(norm.length / 6))); // 名前の長さで2〜3文字
+      const kanji = pickKanji(norm, len);
+
+      resultEl.textContent = `あなたの和名：${kanji}`;
+      hintEl.textContent = `読み（参考）：${norm}`;
+      hintEl.style.display = 'block';
+      copyBtn.style.display = 'inline-block';
+      shareBtn.style.display = 'inline-block';
+
+      copyBtn.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(kanji);
+          copyBtn.textContent = "コピーしました";
+          setTimeout(()=>copyBtn.textContent="コピー",1200);
+        } catch { alert("コピーできませんでした"); }
+      };
+
+      shareBtn.onclick = async () => {
+        const text = `私の和名は「${kanji}」だそうです！`;
+        if (navigator.share) {
+          try { await navigator.share({ text }); } catch {}
+        } else {
+          alert(text);
+        }
+      };
+    }
+
+    document.getElementById('convertBtn').addEventListener('click', convert);
+    document.getElementById('nameInput').addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter') convert();
+    });
   </script>
 </body>
 </html>
