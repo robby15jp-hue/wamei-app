@@ -1,256 +1,149 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wamei — Kanji Atoji Maker</title>
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wamei — Readable Kanji Atoji</title>
 <style>
-  :root{
-    --bg:#0f1224; --card:#121735; --ink:#e8ebff; --muted:#9aa3ff;
-    --accent:#6c8bff; --accent2:#9f7aff; --r:18px; --gap:14px;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0; min-height:100dvh; color:var(--ink);
-    font:16px/1.6 -apple-system,system-ui,Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-    background:
-      radial-gradient(1200px 600px at 70% -20%, #2631a0 0%, transparent 60%),
-      radial-gradient(900px 600px at -10% 110%, #7928ca 0%, transparent 55%),
-      var(--bg);
-    display:grid; place-items:center; padding:28px;
-  }
-  .card{
-    width:min(900px,100%); padding:28px; border-radius:var(--r);
-    background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
-    border:1px solid rgba(255,255,255,.10); backdrop-filter: blur(8px);
-    box-shadow:0 10px 40px rgba(0,0,0,.35);
-  }
-  h1{margin:0 0 10px; font-size:clamp(22px,3vw,30px)}
-  p.lead{margin:0 0 18px; color:var(--muted)}
-  .row{display:flex; gap:var(--gap); flex-wrap:wrap; margin:16px 0}
-  input{
-    flex:1 1 230px; min-width:220px;
-    font:600 16px/1.2 inherit; color:var(--ink);
-    padding:14px 16px; background:#0e1430; border:1px solid rgba(255,255,255,.12);
-    border-radius:12px; outline:none;
-  }
-  input::placeholder{color:#7f89d9}
-  button{
-    appearance:none; border:0; cursor:pointer; white-space:nowrap;
-    padding:14px 18px; border-radius:14px; font-weight:700; letter-spacing:.3px;
-    color:#0b0f1e; background:linear-gradient(135deg,var(--accent),var(--accent2));
-    box-shadow:0 6px 16px rgba(108,139,255,.45);
-  }
-  .result{margin-top:18px; display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap}
-  .kanji{
-    font-size:clamp(52px,8vw,92px); line-height:1; font-weight:800;
-    padding:10px 18px; border-radius:16px;
-    background:linear-gradient(180deg,#fff,#dfe4ff); color:#0c1030;
-    letter-spacing:.08em; box-shadow:inset 0 1px 0 rgba(255,255,255,.6);
-  }
-  .note{color:var(--muted); font-weight:600}
-  .bar{display:flex; gap:10px; margin-top:10px; flex-wrap:wrap}
-  .ghost{background:transparent; border:1px solid rgba(255,255,255,.22); color:var(--ink); border-radius:12px; padding:10px 14px}
-  footer{margin-top:14px; color:#8d97ff; font-size:12px}
-</style>
-</head>
-<body>
-  <main class="card">
-    <h1>Wamei — Kanji Atoji Maker</h1>
-    <p class="lead">Enter your name (Latin), optional reading (Katakana), and a personal code. Result is readable by Japanese speakers.</p>
-
-    <div class="row">
-      <input id="name" autocomplete="name" placeholder="Name (e.g., Kate / Tommy)" />
-      <input id="reading" placeholder="Reading in Katakana (e.g., ケイト / トミー)" />
-      <input id="code" inputmode="numeric" pattern="[0-9]*" placeholder="Personal code (e.g., 0731)" />
-      <button id="convert">Generate</button>
-    </div>
-
-    <section class="result" id="result" hidden>
-      <div class="kanji" id="kanji">—</div>
-      <div>
-        <div class="note" id="kana">kana: —</div>
-        <div class="bar">
-          <button class="ghost" id="copyBtn">Copy</button>
-          <button class="ghost" id="shareBtn">Share</button>
-        </div>
+:root{--bg:#0f1224;--card:#121735;--ink:#e8ebff;--muted:#9aa3ff;--a:#6c8bff;--b:#9f7aff;--r:18px}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;color:var(--ink);
+font:16px/1.6 -apple-system,system-ui,Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+background:radial-gradient(1200px 600px at 70% -20%,#2631a0 0%,transparent 60%),
+radial-gradient(900px 600px at -10% 110%,#7928ca 0%,transparent 55%),#0f1224;
+display:grid;place-items:center;padding:28px}
+.card{width:min(900px,100%);padding:28px;border-radius:var(--r);
+background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(8px);box-shadow:0 10px 40px rgba(0,0,0,.35)}
+h1{margin:0 0 10px;font-size:clamp(22px,3vw,30px)}.lead{margin:0 0 16px;color:var(--muted)}
+.row{display:flex;gap:14px;flex-wrap:wrap;margin:14px 0}
+input{flex:1 1 260px;min-width:220px;font:600 16px/1.2 inherit;color:var(--ink);
+padding:14px 16px;background:#0e1430;border:1px solid rgba(255,255,255,.12);border-radius:12px}
+input::placeholder{color:#7f89d9}
+button{appearance:none;border:0;cursor:pointer;white-space:nowrap;padding:14px 18px;border-radius:14px;
+font-weight:700;letter-spacing:.3px;color:#0b0f1e;background:linear-gradient(135deg,var(--a),var(--b));
+box-shadow:0 6px 16px rgba(108,139,255,.45)}
+.result{margin-top:18px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.kanji{font-size:clamp(52px,8vw,92px);line-height:1;font-weight:800;padding:10px 18px;border-radius:16px;
+background:linear-gradient(180deg,#fff,#e9edff);color:#0c1030;letter-spacing:.08em;box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+.note{color:var(--muted);font-weight:600}.bar{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.ghost{background:transparent;border:1px solid rgba(255,255,255,.22);color:var(--ink);border-radius:12px;padding:10px 14px}
+footer{margin-top:12px;color:#8d97ff;font-size:12px}
+</style></head><body>
+<main class="card">
+  <h1>Wamei — Readable Kanji Atoji</h1>
+  <p class="lead">Type a name (Latin or Katakana). We generate <b>readable</b> kanji based on the Japanese reading.</p>
+  <div class="row">
+    <input id="name" autocomplete="name" placeholder="Name (e.g., Mike / ケイト / Tommy)">
+    <button id="convert">Generate</button>
+  </div>
+  <section class="result" id="result" hidden>
+    <div class="kanji" id="kanji">—</div>
+    <div>
+      <div class="note" id="kana">kana: —</div>
+      <div class="bar">
+        <button class="ghost" id="copyBtn">Copy</button>
+        <button class="ghost" id="shareBtn">Share</button>
       </div>
-    </section>
-
-    <footer>Client-only. Same person ⇒ same result (name+code). Different code ⇒ different kanji.</footer>
-  </main>
+    </div>
+  </section>
+  <footer>Deterministic per name (no personal code). Client-only, no data sent.</footer>
+</main>
 
 <script>
-/* ========= utilities ========= */
-function xmur3(str){
-  let h = 1779033703 ^ str.length;
-  for (let i = 0; i < str.length; i++){
-    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
-    h = (h << 13) | (h >>> 19);
-  }
-  return () => {
-    h = Math.imul(h ^ (h>>>16), 2246822507);
-    h = Math.imul(h ^ (h>>>13), 3266489909);
-    return (h ^= h>>>16) >>> 0;
-  };
-}
-const toKatakana = s => s.replace(/[ぁ-ん]/g, ch => String.fromCharCode(ch.charCodeAt(0) + 0x60));
+/* --- tiny utils --- */
+function xmur3(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=(h<<13)|(h>>>19)}
+return()=>{h=Math.imul(h^(h>>>16),2246822507);h=Math.imul(h^(h>>>13),3266489909);return(h^=h>>>16)>>>0}}
+const toKatakana=s=>s.replace(/[ぁ-ん]/g,ch=>String.fromCharCode(ch.charCodeAt(0)+0x60));
 
-/* --- rough roman → katakana (fallback用。読みが入ればそちら優先) --- */
+/* --- Roman → Katakana (rough). Mike→マイク, Kate→ケイト, Tommy→トミー --- */
 function romanToKana(str){
-  let s = (str||"").toLowerCase().replace(/[^a-z]/g,"");
-  if(!s) return "";
-  // long vowels
-  s = s.replace(/ou/g,"oo").replace(/aa|ii|uu|ee|oo/g, m => m[0] + "h"); // mark length
-  // specials (longer first)
-  const rep = [
-    ["kyo","キョ"],["kyu","キュ"],["kya","キャ"],
-    ["gyo","ギョ"],["gyu","ギュ"],["gya","ギャ"],
-    ["sho","ショ"],["shu","シュ"],["sha","シャ"],
-    ["jo","ジョ"],["ju","ジュ"],["ja","ジャ"],
-    ["cho","チョ"],["chu","チュ"],["cha","チャ"],
-    ["nya","ニャ"],["nyu","ニュ"],["nyo","ニョ"],
-    ["hya","ヒャ"],["hyu","ヒュ"],["hyo","ヒョ"],
-    ["rya","リャ"],["ryu","リュ"],["ryo","リョ"],
-    ["bya","ビャ"],["byu","ビュ"],["byo","ビョ"],
-    ["pya","ピャ"],["pyu","ピュ"],["pyo","ピョ"],
-    ["thi","ティ"],["ti","ティ"],["di","ディ"],["du","ドゥ"],
-    ["tsu","ツ"],["shi","シ"],["chi","チ"],["fu","フ"],
-    ["je","ジェ"],["ji","ジ"],["va","ヴァ"],["vi","ヴィ"],["ve","ヴェ"],["vo","ヴォ"]
-  ];
-  for(const [a,b] of rep){ s = s.replaceAll(a,b); }
-  // double consonant → ッ
-  s = s.replace(/([bcdfghjklmnpqrstvwxyz])\1/g, "ッ$1");
-  // n→ン (before consonant/end)
-  s = s.replace(/n(?=$|[^aeiouy])/g,"ン");
-  // leftovers
-  const base = {
-    a:"ア", i:"イ", u:"ウ", e:"エ", o:"オ",
-    ka:"カ", ki:"キ", ku:"ク", ke:"ケ", ko:"コ",
-    ga:"ガ", gi:"ギ", gu:"グ", ge:"ゲ", go:"ゴ",
-    sa:"サ", si:"シ", su:"ス", se:"セ", so:"ソ",
-    za:"ザ", zi:"ジ", zu:"ズ", ze:"ゼ", zo:"ゾ",
-    ta:"タ", tu:"トゥ", te:"テ", to:"ト",
-    da:"ダ", de:"デ", do:"ド",
-    na:"ナ", ni:"ニ", nu:"ヌ", ne:"ネ", no:"ノ",
-    ha:"ハ", hi:"ヒ", hu:"フ", he:"ヘ", ho:"ホ",
-    ma:"マ", mi:"ミ", mu:"ム", me:"メ", mo:"モ",
-    ya:"ヤ", yu:"ユ", yo:"ヨ",
-    ra:"ラ", ri:"リ", ru:"ル", re:"レ", ro:"ロ",
-    wa:"ワ", wo:"ヲ"
-  };
-  // greedy consume
-  let out="", i=0;
-  while(i < s.length){
-    if(s[i+1]==="h"){ // long vowel mark
-      out += {"a":"アー","i":"イー","u":"ウー","e":"エー","o":"オー"}[s[i]] || "";
-      i+=2; continue;
-    }
-    let got=false;
-    for(const k of Object.keys(base).sort((a,b)=>b.length-a.length)){
-      if(s.startsWith(k,i)){ out += base[k]; i+=k.length; got=true; break; }
-    }
-    if(!got){ out += s[i].toUpperCase(); i++; }
-  }
-  return out;
+  let s=(str||"").toLowerCase().replace(/[^a-z]/g,""); if(!s) return "";
+  s=s.replace(/ou/g,"oo").replace(/aa|ii|uu|ee|oo/g,m=>m[0]+"h"); // long vowel mark
+  const rep=[["mike","マイク"],["michael","マイケル"],["tommy","トミー"],["kate","ケイト"],["john","ジョン"]];
+  for(const [a,b] of rep){ if(s===a) return b; }
+  const table=[["kyo","キョ"],["kyu","キュ"],["kya","キャ"],["gyo","ギョ"],["gyu","ギュ"],["gya","ギャ"],
+  ["sho","ショ"],["shu","シュ"],["sha","シャ"],["jo","ジョ"],["ju","ジュ"],["ja","ジャ"],
+  ["cho","チョ"],["chu","チュ"],["cha","チャ"],["ryo","リョ"],["ryu","リュ"],["rya","リャ"],
+  ["nyo","ニョ"],["nyu","ニュ"],["nya","ニャ"],["hyo","ヒョ"],["hyu","ヒュ"],["hya","ヒャ"],
+  ["bya","ビャ"],["byu","ビュ"],["byo","ビョ"],["pya","ピャ"],["pyu","ピュ"],["pyo","ピョ"],
+  ["thi","ティ"],["ti","ティ"],["di","ディ"],["du","ドゥ"],["tsu","ツ"],["shi","シ"],["chi","チ"],["fu","フ"]];
+  for(const [a,b] of table){ s=s.replaceAll(a,b) }
+  s=s.replace(/([bcdfghjklmnpqrstvwxyz])\1/g,"ッ$1"); // doubled cons
+  s=s.replace(/n(?=$|[^aeiouy])/g,"ン");
+  const base={a:"ア",i:"イ",u:"ウ",e:"エ",o:"オ",ka:"カ",ki:"キ",ku:"ク",ke:"ケ",ko:"コ",
+  ga:"ガ",gi:"ギ",gu:"グ",ge:"ゲ",go:"ゴ",sa:"サ",si:"シ",su:"ス",se:"セ",so:"ソ",
+  za:"ザ",zi:"ジ",zu:"ズ",ze:"ゼ",zo:"ゾ",ta:"タ",te:"テ",to:"ト",da:"ダ",de:"デ",do:"ド",
+  na:"ナ",ni:"ニ",nu:"ヌ",ne:"ネ",no:"ノ",ha:"ハ",hi:"ヒ",hu:"フ",he:"ヘ",ho:"ホ",
+  ma:"マ",mi:"ミ",mu:"ム",me:"メ",mo:"モ",ya:"ヤ",yu:"ユ",yo:"ヨ",ra:"ラ",ri:"リ",ru:"ル",re:"レ",ro:"ロ",
+  wa:"ワ",wo:"ヲ"};
+  let out="",i=0;const keys=Object.keys(base).sort((a,b)=>b.length-a.length);
+  while(i<s.length){
+    if(s[i+1]==="h"){out+=({"a":"アー","i":"イー","u":"ウー","e":"エー","o":"オー"}[s[i]]||""); i+=2; continue;}
+    let got=false; for(const k of keys){ if(s.startsWith(k,i)){out+=base[k]; i+=k.length; got=true; break;}}
+    if(!got){out+=s[i].toUpperCase(); i++;}
+  } return out;
 }
 
-/* --- 当て字マップ：読み→よくある“名前読み”の漢字候補 --- */
-const ATOJI = {
-  "ケイ": ["啓","慶","恵","圭","景","桂","珪","京"],
-  "ト":   ["斗","人","登","都","杜","翔"],
-  "ミ":   ["美","巳","実","海","三"],
-  "カ":   ["佳","加","嘉","香","賀"],
-  "タ":   ["太","汰","多","田","塔"],
-  "テ":   ["泰","帝","禎","定"],          // ※「テ」は難しいので控えめ
-  "ショウ":["翔","昇","将","晶","笑","彰"],
-  "キョウ":["京","恭","郷","強"],
-  "リュウ":["龍","隆","流","琉"],
-  "ア":   ["亜","愛","安"], "イ":["伊","依","威"], "ウ":["宇","羽","佑"],
-  "エ":   ["恵","英","慧"], "オ":["央","王","鳳"],
-  "ヤ":   ["也","矢","弥"], "ユ":["優","悠","佑"], "ヨ":["陽","世","代","葉"],
-  "ラ":   ["良","等","藍"], "リ":["理","璃","利","凛"], "ル":["瑠","留","流"],
-  "レ":   ["玲","礼","麗","零"], "ロ":["郎","露","琉"],
-  "ン":   [""], "ー": [""], "ッ": [""]
+/* --- Atoji dictionary: only kanji that keep the reading natural for names --- */
+const ATOJI={
+  "ケイ":["啓","圭","慶","桂","珪","景"], "ト":["斗","人","登","都","杜"],
+  "マ":["真","麻","舞","摩"], "イク":["郁","育","幾"], "ミ":["美","巳","実","海","三"],
+  "カ":["佳","加","嘉","香","賀"], "テ":["泰","帝","禎","定"],
+  "ショウ":["翔","昇","将","晶","笑","彰"], "キョウ":["京","恭","郷","強"],
+  "トミ":["富美","登美"], // ready-made
+  "ア":["亜","愛","安"], "イ":["依","伊","以","維"], "ウ":["宇","羽","佑"], "エ":["恵","英","慧"], "オ":["央","王","鳳"],
+  "ヤ":["也","矢","弥"], "ユ":["優","悠","佑"], "ヨ":["陽","世","代","葉"],
+  "ラ":["良","等","藍"], "リ":["理","璃","利","凛"], "ル":["瑠","留","流"],
+  "レ":["玲","礼","麗","零"], "ロ":["郎","露","琉"], "ン":[""], "ー":[""], "ッ":[""]
 };
-/* 優先的にマッチさせたい長めの読み */
-const TOKENS = ["ショウ","キョウ","リュウ","ケイ","キャ","キュ","キョ","シャ","シュ","ショ","チャ","チュ","チョ","ニャ","ニュ","ニョ","ヒャ","ヒュ","ヒョ","ミャ","ミュ","ミョ","リャ","リュ","リョ","ジャ","ジュ","ジョ","ティ","ディ","トゥ","ツァ","ツィ","ツェ","ツォ"];
+const LONG_TOKENS=["ショウ","キョウ","トミ","ケイ","キャ","キュ","キョ","シャ","シュ","ショ","チャ","チュ","チョ","リャ","リュ","リョ","ニャ","ニュ","ニョ","ヒャ","ヒュ","ヒョ","ミャ","ミュ","ミョ","ティ","ディ","トゥ","イク"];
 
-/* カタカナをトークン列に分割（長い読み優先） */
+/* tokenize Katakana (prefer longer tokens) */
 function tokenizeKana(kana){
-  let s = kana.replace(/[^ァ-ンー]/g,"").replace(/ヴ/g,"ブ");
-  // 長音は維持（"ー"は最後に無音扱い）・小書きは前の音と合成済前提
-  const list = [];
+  let s=kana.replace(/[^ァ-ンー]/g,"").replace(/ヴ/g,"ブ");
+  const list=[];
   while(s.length){
-    let found = null;
-    for(const t of TOKENS){ if(s.startsWith(t)){ found=t; break; } }
+    let found=null;
+    for(const t of LONG_TOKENS){ if(s.startsWith(t)){ found=t; break; } }
     if(!found){
-      // 2文字（例: ケイ）を優先
-      const two = s.slice(0,2);
-      if(ATOJI[two]){ list.push(two); s=s.slice(2); continue; }
-      list.push(s[0]); s = s.slice(1);
-    }else{
-      list.push(found); s = s.slice(found.length);
-    }
-  }
-  // 「ケ」「イ」が続いたら「ケイ」にまとめる
-  for(let i=0;i<list.length-1;i++){
-    if(list[i]==="ケ" && list[i+1]==="イ"){ list.splice(i,2,"ケイ"); }
+      // merge ケ + イ → ケイ
+      if(s.startsWith("ケイ")){ list.push("ケイ"); s=s.slice(2); continue; }
+      if(s.startsWith("トミ")){ list.push("トミ"); s=s.slice(2); continue; }
+      list.push(s[0]); s=s.slice(1);
+    } else { list.push(found); s=s.slice(found.length); }
   }
   return list;
 }
 
-/* 当て字生成（同じ人→同じ / 同名でもコード違えば別） */
-function makeAtoji(kana, code){
-  const seed = (kana + "#" + (code||"")).toUpperCase();
-  const rnd = xmur3(seed);
+/* deterministic pick (same name → same result) */
+function atojiFrom(kana){
+  const seed = kana.toUpperCase(), rnd = xmur3(seed);
   const tokens = tokenizeKana(kana);
-  let out = [];
+  let out=[];
   for(const t of tokens){
     const cand = ATOJI[t] || ["雅","瑞","礼","匠","央"];
-    out.push(cand[rnd() % cand.length]);
+    out.push(cand[rnd()%cand.length]);
   }
-  // 見た目を2～3字に圧縮（安定的に）
-  if(out.length >= 4){
-    const keep = 2 + (rnd() % 2); // 2 or 3
-    const stride = Math.max(1, Math.floor(out.length / keep));
-    const compact = [];
-    for(let i=0;i<keep;i++){ compact.push(out[i*stride]); }
+  // compact to 2–3 chars for aesthetics
+  if(out.length>=4){
+    const keep = 2 + (rnd()%2);
+    const stride = Math.max(1, Math.floor(out.length/keep));
+    const compact=[]; for(let i=0;i<keep;i++){ compact.push(out[i*stride]); }
     out = compact;
   }
   return out.join("");
 }
 
-/* ========= UI ========= */
-const $ = s => document.querySelector(s);
-const nameI = $("#name"), readI = $("#reading"), codeI = $("#code");
-const btn = $("#convert"), res = $("#result"), kanjiEl = $("#kanji"), kanaEl = $("#kana");
-const copyBtn = $("#copyBtn"), shareBtn = $("#shareBtn");
-
+/* --- UI --- */
+const $=s=>document.querySelector(s); const nameI=$("#name"), btn=$("#convert");
+const res=$("#result"), kanjiEl=$("#kanji"), kanaEl=$("#kana");
 function run(){
-  const code = (codeI.value||"").trim();
-  const inName = (nameI.value||"").trim();
-  let kana = (readI.value||"").trim();
-  if(!kana){
-    // 読み未入力なら推定
-    if(/[A-Za-z]/.test(inName)) kana = romanToKana(inName);
-    else kana = toKatakana(inName);
-  }
-  kana = kana.replace(/[^ァ-ンー]/g,""); // keep only katakana
-  const result = (kana && code) ? makeAtoji(kana, code) : "—";
-  kanjiEl.textContent = result || "—";
-  kanaEl.textContent  = "kana: " + (kana || "—");
-  res.hidden = false;
+  let v=(nameI.value||"").trim(); if(!v){res.hidden=false; kanjiEl.textContent="—"; kanaEl.textContent="kana: —"; return;}
+  let kana=/[A-Za-z]/.test(v) ? romanToKana(v) : toKatakana(v);
+  kana=kana.replace(/[^ァ-ンー]/g,"");
+  const kanji = kana? atojiFrom(kana) : "—";
+  kanjiEl.textContent=kanji; kanaEl.textContent="kana: "+(kana||"—"); res.hidden=false;
 }
-btn.addEventListener("click", run);
-[nameI, readI, codeI].forEach(el => el.addEventListener("keydown", e => { if(e.key==="Enter") run(); }));
-copyBtn.onclick = async () => {
-  try{ await navigator.clipboard.writeText(kanjiEl.textContent); copyBtn.textContent="Copied!"; setTimeout(()=>copyBtn.textContent="Copy",1200); }catch{}
-};
-shareBtn.onclick = async () => {
-  const text = `My kanji (atoji): ${kanjiEl.textContent}  / ${kanaEl.textContent}`;
-  if(navigator.share){ try{ await navigator.share({text}); }catch{} } else { alert(text); }
-};
+btn.addEventListener("click",run);
+nameI.addEventListener("keydown",e=>{if(e.key==="Enter")run()});
+$("#copyBtn").onclick=async()=>{try{await navigator.clipboard.writeText(kanjiEl.textContent);$("#copyBtn").textContent="Copied!";setTimeout(()=>$("#copyBtn").textContent="Copy",1200);}catch{}};
+$("#shareBtn").onclick=async()=>{const text=`My kanji (atoji): ${kanjiEl.textContent} / ${kanaEl.textContent}`; if(navigator.share){try{await navigator.share({text})}catch{}} else alert(text)};
 </script>
-</body>
-</html>
+</body></html>
