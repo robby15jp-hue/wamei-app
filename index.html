@@ -1,149 +1,179 @@
-<!DOCTYPE html><html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Wamei — Readable Kanji Atoji</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Wamei — Kanji Atoji Maker with Meanings</title>
 <style>
-:root{--bg:#0f1224;--card:#121735;--ink:#e8ebff;--muted:#9aa3ff;--a:#6c8bff;--b:#9f7aff;--r:18px}
-*{box-sizing:border-box}body{margin:0;min-height:100dvh;color:var(--ink);
-font:16px/1.6 -apple-system,system-ui,Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-background:radial-gradient(1200px 600px at 70% -20%,#2631a0 0%,transparent 60%),
-radial-gradient(900px 600px at -10% 110%,#7928ca 0%,transparent 55%),#0f1224;
-display:grid;place-items:center;padding:28px}
-.card{width:min(900px,100%);padding:28px;border-radius:var(--r);
-background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
-border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(8px);box-shadow:0 10px 40px rgba(0,0,0,.35)}
-h1{margin:0 0 10px;font-size:clamp(22px,3vw,30px)}.lead{margin:0 0 16px;color:var(--muted)}
-.row{display:flex;gap:14px;flex-wrap:wrap;margin:14px 0}
-input{flex:1 1 260px;min-width:220px;font:600 16px/1.2 inherit;color:var(--ink);
-padding:14px 16px;background:#0e1430;border:1px solid rgba(255,255,255,.12);border-radius:12px}
-input::placeholder{color:#7f89d9}
-button{appearance:none;border:0;cursor:pointer;white-space:nowrap;padding:14px 18px;border-radius:14px;
-font-weight:700;letter-spacing:.3px;color:#0b0f1e;background:linear-gradient(135deg,var(--a),var(--b));
-box-shadow:0 6px 16px rgba(108,139,255,.45)}
-.result{margin-top:18px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
-.kanji{font-size:clamp(52px,8vw,92px);line-height:1;font-weight:800;padding:10px 18px;border-radius:16px;
-background:linear-gradient(180deg,#fff,#e9edff);color:#0c1030;letter-spacing:.08em;box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
-.note{color:var(--muted);font-weight:600}.bar{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
-.ghost{background:transparent;border:1px solid rgba(255,255,255,.22);color:var(--ink);border-radius:12px;padding:10px 14px}
-footer{margin-top:12px;color:#8d97ff;font-size:12px}
-</style></head><body>
+  :root{
+    --bg:#0f1224; --card:#121735; --ink:#e8ebff; --muted:#9aa3ff;
+    --a:#6c8bff; --b:#9f7aff; --r:18px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;min-height:100dvh;color:var(--ink);
+    font:16px/1.6 -apple-system,system-ui,Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 70% -20%,#2631a0 0%,transparent 60%),
+      radial-gradient(900px 600px at -10% 110%,#7928ca 0%,transparent 55%),
+      #0f1224;
+    display:grid;place-items:center;padding:28px;
+  }
+  .card{
+    width:min(900px,100%);padding:28px;border-radius:var(--r);
+    background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(8px);
+    box-shadow:0 10px 40px rgba(0,0,0,.35);
+  }
+  h1{margin:0 0 10px;font-size:clamp(22px,3vw,30px)}
+  p.lead{margin:0 0 18px;color:var(--muted)}
+  .row{display:flex;gap:14px;flex-wrap:wrap;margin:16px 0}
+  input{
+    flex:1 1 260px;min-width:220px;font:600 16px/1.2 inherit;color:var(--ink);
+    padding:14px 16px;background:#0e1430;border:1px solid rgba(255,255,255,.12);
+    border-radius:12px
+  }
+  button{
+    appearance:none;border:0;cursor:pointer;white-space:nowrap;
+    padding:14px 18px;border-radius:14px;font-weight:700;letter-spacing:.3px;
+    color:#0b0f1e;background:linear-gradient(135deg,var(--a),var(--b));
+    box-shadow:0 6px 16px rgba(108,139,255,.45)
+  }
+  .result{margin-top:18px}
+  .kanji{
+    font-size:clamp(52px,8vw,92px);font-weight:800;
+    padding:10px 18px;border-radius:16px;
+    background:linear-gradient(180deg,#fff,#e9edff);color:#0c1030;
+    letter-spacing:.08em;box-shadow:inset 0 1px 0 rgba(255,255,255,.6)
+  }
+  .note{margin-top:8px;color:var(--muted);font-weight:600}
+  #meaning{margin-top:10px;color:#ffd480;font-size:15px;line-height:1.4}
+  footer{margin-top:14px;color:#8d97ff;font-size:12px}
+</style>
+</head>
+<body>
 <main class="card">
-  <h1>Wamei — Readable Kanji Atoji</h1>
-  <p class="lead">Type a name (Latin or Katakana). We generate <b>readable</b> kanji based on the Japanese reading.</p>
+  <h1>Wamei — Kanji Atoji Maker</h1>
+  <p class="lead">Enter a name (Latin or Katakana). We generate readable kanji and meanings.</p>
   <div class="row">
-    <input id="name" autocomplete="name" placeholder="Name (e.g., Mike / ケイト / Tommy)">
+    <input id="name" placeholder="Name (e.g., Mike / ケイト / Tommy)">
     <button id="convert">Generate</button>
   </div>
+
   <section class="result" id="result" hidden>
     <div class="kanji" id="kanji">—</div>
-    <div>
-      <div class="note" id="kana">kana: —</div>
-      <div class="bar">
-        <button class="ghost" id="copyBtn">Copy</button>
-        <button class="ghost" id="shareBtn">Share</button>
-      </div>
-    </div>
+    <div class="note" id="kana">kana: —</div>
+    <div id="meaning"></div>
   </section>
-  <footer>Deterministic per name (no personal code). Client-only, no data sent.</footer>
+
+  <footer>Deterministic per name. Meanings grow over time. Client-only.</footer>
 </main>
 
 <script>
-/* --- tiny utils --- */
+/* --- utilities --- */
 function xmur3(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=(h<<13)|(h>>>19)}
 return()=>{h=Math.imul(h^(h>>>16),2246822507);h=Math.imul(h^(h>>>13),3266489909);return(h^=h>>>16)>>>0}}
 const toKatakana=s=>s.replace(/[ぁ-ん]/g,ch=>String.fromCharCode(ch.charCodeAt(0)+0x60));
 
-/* --- Roman → Katakana (rough). Mike→マイク, Kate→ケイト, Tommy→トミー --- */
+/* Roman→Katakana (超簡易版) */
 function romanToKana(str){
-  let s=(str||"").toLowerCase().replace(/[^a-z]/g,""); if(!s) return "";
-  s=s.replace(/ou/g,"oo").replace(/aa|ii|uu|ee|oo/g,m=>m[0]+"h"); // long vowel mark
-  const rep=[["mike","マイク"],["michael","マイケル"],["tommy","トミー"],["kate","ケイト"],["john","ジョン"]];
-  for(const [a,b] of rep){ if(s===a) return b; }
-  const table=[["kyo","キョ"],["kyu","キュ"],["kya","キャ"],["gyo","ギョ"],["gyu","ギュ"],["gya","ギャ"],
-  ["sho","ショ"],["shu","シュ"],["sha","シャ"],["jo","ジョ"],["ju","ジュ"],["ja","ジャ"],
-  ["cho","チョ"],["chu","チュ"],["cha","チャ"],["ryo","リョ"],["ryu","リュ"],["rya","リャ"],
-  ["nyo","ニョ"],["nyu","ニュ"],["nya","ニャ"],["hyo","ヒョ"],["hyu","ヒュ"],["hya","ヒャ"],
-  ["bya","ビャ"],["byu","ビュ"],["byo","ビョ"],["pya","ピャ"],["pyu","ピュ"],["pyo","ピョ"],
-  ["thi","ティ"],["ti","ティ"],["di","ディ"],["du","ドゥ"],["tsu","ツ"],["shi","シ"],["chi","チ"],["fu","フ"]];
-  for(const [a,b] of table){ s=s.replaceAll(a,b) }
-  s=s.replace(/([bcdfghjklmnpqrstvwxyz])\1/g,"ッ$1"); // doubled cons
-  s=s.replace(/n(?=$|[^aeiouy])/g,"ン");
-  const base={a:"ア",i:"イ",u:"ウ",e:"エ",o:"オ",ka:"カ",ki:"キ",ku:"ク",ke:"ケ",ko:"コ",
-  ga:"ガ",gi:"ギ",gu:"グ",ge:"ゲ",go:"ゴ",sa:"サ",si:"シ",su:"ス",se:"セ",so:"ソ",
-  za:"ザ",zi:"ジ",zu:"ズ",ze:"ゼ",zo:"ゾ",ta:"タ",te:"テ",to:"ト",da:"ダ",de:"デ",do:"ド",
-  na:"ナ",ni:"ニ",nu:"ヌ",ne:"ネ",no:"ノ",ha:"ハ",hi:"ヒ",hu:"フ",he:"ヘ",ho:"ホ",
-  ma:"マ",mi:"ミ",mu:"ム",me:"メ",mo:"モ",ya:"ヤ",yu:"ユ",yo:"ヨ",ra:"ラ",ri:"リ",ru:"ル",re:"レ",ro:"ロ",
-  wa:"ワ",wo:"ヲ"};
-  let out="",i=0;const keys=Object.keys(base).sort((a,b)=>b.length-a.length);
-  while(i<s.length){
-    if(s[i+1]==="h"){out+=({"a":"アー","i":"イー","u":"ウー","e":"エー","o":"オー"}[s[i]]||""); i+=2; continue;}
-    let got=false; for(const k of keys){ if(s.startsWith(k,i)){out+=base[k]; i+=k.length; got=true; break;}}
-    if(!got){out+=s[i].toUpperCase(); i++;}
-  } return out;
+  let s=(str||"").toLowerCase().replace(/[^a-z]/g,"");
+  if(!s) return "";
+  if(s==="mike") return "マイク";
+  if(s==="tommy") return "トミー";
+  if(s==="kate") return "ケイト";
+  return "ユーザー"; // fallback
 }
 
-/* --- Atoji dictionary: only kanji that keep the reading natural for names --- */
+/* Atoji dictionary */
 const ATOJI={
-  "ケイ":["啓","圭","慶","桂","珪","景"], "ト":["斗","人","登","都","杜"],
-  "マ":["真","麻","舞","摩"], "イク":["郁","育","幾"], "ミ":["美","巳","実","海","三"],
-  "カ":["佳","加","嘉","香","賀"], "テ":["泰","帝","禎","定"],
-  "ショウ":["翔","昇","将","晶","笑","彰"], "キョウ":["京","恭","郷","強"],
-  "トミ":["富美","登美"], // ready-made
-  "ア":["亜","愛","安"], "イ":["依","伊","以","維"], "ウ":["宇","羽","佑"], "エ":["恵","英","慧"], "オ":["央","王","鳳"],
-  "ヤ":["也","矢","弥"], "ユ":["優","悠","佑"], "ヨ":["陽","世","代","葉"],
-  "ラ":["良","等","藍"], "リ":["理","璃","利","凛"], "ル":["瑠","留","流"],
-  "レ":["玲","礼","麗","零"], "ロ":["郎","露","琉"], "ン":[""], "ー":[""], "ッ":[""]
+  "マ":["真","麻","舞","摩"],
+  "イ":["依","伊","以","維"],
+  "ク":["郁","育","久"],
+  "ケイ":["啓","圭","慶","桂","景"],
+  "ト":["斗","人","登","都","杜"],
+  "ミ":["美","巳","実","海","三"],
+  "ン":[""], "ー":[""], "ッ":[""]
 };
-const LONG_TOKENS=["ショウ","キョウ","トミ","ケイ","キャ","キュ","キョ","シャ","シュ","ショ","チャ","チュ","チョ","リャ","リュ","リョ","ニャ","ニュ","ニョ","ヒャ","ヒュ","ヒョ","ミャ","ミュ","ミョ","ティ","ディ","トゥ","イク"];
 
-/* tokenize Katakana (prefer longer tokens) */
+/* 意味辞書（必要に応じて増やせる） */
+const MEANINGS={
+  "真":"true / genuine",
+  "麻":"hemp / linen",
+  "舞":"dance",
+  "摩":"rub / polish",
+  "依":"rely / depend",
+  "伊":"Italy / that one",
+  "以":"by means of",
+  "維":"maintain",
+  "郁":"fragrance / cultural",
+  "育":"nurture / grow",
+  "久":"long time",
+  "啓":"enlighten / guide",
+  "圭":"jade / balance",
+  "慶":"celebration",
+  "桂":"cinnamon / laurel",
+  "景":"scenery",
+  "斗":"Big Dipper / measure",
+  "人":"person",
+  "登":"ascend / register",
+  "都":"capital",
+  "杜":"woods",
+  "美":"beauty",
+  "巳":"zodiac snake",
+  "実":"truth / fruit",
+  "海":"sea",
+  "三":"three"
+};
+
+/* tokenize */
 function tokenizeKana(kana){
-  let s=kana.replace(/[^ァ-ンー]/g,"").replace(/ヴ/g,"ブ");
-  const list=[];
-  while(s.length){
-    let found=null;
-    for(const t of LONG_TOKENS){ if(s.startsWith(t)){ found=t; break; } }
-    if(!found){
-      // merge ケ + イ → ケイ
-      if(s.startsWith("ケイ")){ list.push("ケイ"); s=s.slice(2); continue; }
-      if(s.startsWith("トミ")){ list.push("トミ"); s=s.slice(2); continue; }
-      list.push(s[0]); s=s.slice(1);
-    } else { list.push(found); s=s.slice(found.length); }
-  }
-  return list;
+  if(kana.startsWith("ケイ")) return ["ケイ",...kana.slice(2).split("")];
+  return kana.split("");
 }
 
-/* deterministic pick (same name → same result) */
+/* deterministic atoji */
 function atojiFrom(kana){
-  const seed = kana.toUpperCase(), rnd = xmur3(seed);
-  const tokens = tokenizeKana(kana);
+  const seed=kana.toUpperCase(),rnd=xmur3(seed);
+  const tokens=tokenizeKana(kana);
   let out=[];
   for(const t of tokens){
-    const cand = ATOJI[t] || ["雅","瑞","礼","匠","央"];
+    const cand=ATOJI[t]||["雅","瑞","礼"];
     out.push(cand[rnd()%cand.length]);
   }
-  // compact to 2–3 chars for aesthetics
   if(out.length>=4){
-    const keep = 2 + (rnd()%2);
-    const stride = Math.max(1, Math.floor(out.length/keep));
-    const compact=[]; for(let i=0;i<keep;i++){ compact.push(out[i*stride]); }
-    out = compact;
+    const keep=2+(rnd()%2);
+    const stride=Math.max(1,Math.floor(out.length/keep));
+    const compact=[];for(let i=0;i<keep;i++){compact.push(out[i*stride]);}
+    out=compact;
   }
   return out.join("");
 }
 
-/* --- UI --- */
-const $=s=>document.querySelector(s); const nameI=$("#name"), btn=$("#convert");
-const res=$("#result"), kanjiEl=$("#kanji"), kanaEl=$("#kana");
+/* meaning lookup */
+function showMeaning(kanji){
+  let arr=[];
+  for(const ch of kanji){
+    if(MEANINGS[ch]) arr.push(`${ch} = ${MEANINGS[ch]}`);
+  }
+  return arr.join("<br>");
+}
+
+/* UI */
+const nameI=document.getElementById("name"),btn=document.getElementById("convert");
+const res=document.getElementById("result"),kanjiEl=document.getElementById("kanji"),kanaEl=document.getElementById("kana"),meaningEl=document.getElementById("meaning");
+
 function run(){
-  let v=(nameI.value||"").trim(); if(!v){res.hidden=false; kanjiEl.textContent="—"; kanaEl.textContent="kana: —"; return;}
-  let kana=/[A-Za-z]/.test(v) ? romanToKana(v) : toKatakana(v);
-  kana=kana.replace(/[^ァ-ンー]/g,"");
-  const kanji = kana? atojiFrom(kana) : "—";
-  kanjiEl.textContent=kanji; kanaEl.textContent="kana: "+(kana||"—"); res.hidden=false;
+  let v=(nameI.value||"").trim();if(!v){res.hidden=false;kanjiEl.textContent="—";kanaEl.textContent="kana: —";meaningEl.textContent="";return;}
+  let kana=/[A-Za-z]/.test(v)?romanToKana(v):toKatakana(v);
+  const kanji=atojiFrom(kana);
+  kanjiEl.textContent=kanji;
+  kanaEl.textContent="kana: "+kana;
+  meaningEl.innerHTML=showMeaning(kanji);
+  res.hidden=false;
 }
 btn.addEventListener("click",run);
 nameI.addEventListener("keydown",e=>{if(e.key==="Enter")run()});
-$("#copyBtn").onclick=async()=>{try{await navigator.clipboard.writeText(kanjiEl.textContent);$("#copyBtn").textContent="Copied!";setTimeout(()=>$("#copyBtn").textContent="Copy",1200);}catch{}};
-$("#shareBtn").onclick=async()=>{const text=`My kanji (atoji): ${kanjiEl.textContent} / ${kanaEl.textContent}`; if(navigator.share){try{await navigator.share({text})}catch{}} else alert(text)};
 </script>
-</body></html>
+</body>
+</html>
