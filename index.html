@@ -1,748 +1,197 @@
-<!DOCTYPE html>
-
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>和名変換 - WAMEI Converter</title>
-    <meta name="description" content="あなたの名前を美しい日本の漢字に変換。外国人観光客向け文化体験アプリ">
-    <meta name="keywords" content="和名,漢字,当て字,外国人,観光,日本文化,名前変換">
-
-```
-<!-- Open Graph / Facebook -->
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://wamei-converter.netlify.app/">
-<meta property="og:title" content="和名変換 - WAMEI Converter">
-<meta property="og:description" content="Transform your name into beautiful Japanese Kanji">
-<meta property="og:image" content="https://wamei-converter.netlify.app/og-image.jpg">
-
-<!-- Twitter -->
-<meta property="twitter:card" content="summary_large_image">
-<meta property="twitter:url" content="https://wamei-converter.netlify.app/">
-<meta property="twitter:title" content="和名変換 - WAMEI Converter">
-<meta property="twitter:description" content="Transform your name into beautiful Japanese Kanji">
-<meta property="twitter:image" content="https://wamei-converter.netlify.app/og-image.jpg">
-
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
-
-<style>
-    :root {
-        --primary: #ff6b9d;
-        --secondary: #9f7aff;
-        --accent: #4ecdc4;
-        --bg: #0a0f1c;
-        --card: #131935;
-        --text: #e8ebff;
-        --muted: #9aa3ff;
-        --gold: #ffd700;
-        --success: #4ade80;
-        --radius: 20px;
-        --shadow: 0 20px 60px rgba(0,0,0,.4);
-    }
-
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
-        background: 
-            radial-gradient(1200px 600px at 70% -20%, #2631a0 0%, transparent 60%),
-            radial-gradient(900px 600px at -10% 110%, #7928ca 0%, transparent 55%),
-            var(--bg);
-        color: var(--text);
-        min-height: 100vh;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        line-height: 1.6;
-    }
-
-    .app {
-        width: min(1000px, 100%);
-        background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
-        border: 1px solid rgba(255,255,255,.12);
-        border-radius: var(--radius);
-        backdrop-filter: blur(16px);
-        box-shadow: var(--shadow);
-        overflow: hidden;
-        position: relative;
-    }
-
-    .language-switcher {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        z-index: 100;
-    }
-
-    .lang-select {
-        background: rgba(255,255,255,.1);
-        border: 1px solid rgba(255,255,255,.2);
-        border-radius: 8px;
-        color: var(--text);
-        padding: 8px 12px;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .lang-select:hover {
-        background: rgba(255,255,255,.2);
-    }
-
-    .header {
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        padding: 60px 40px;
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .header::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
-        animation: sparkle 30s linear infinite;
-    }
-
-    @keyframes sparkle {
-        0% { transform: rotate(0deg) translate(0, 0); }
-        100% { transform: rotate(360deg) translate(10px, 10px); }
-    }
-
-    .header h1 {
-        font-size: clamp(32px, 6vw, 48px);
-        font-weight: 900;
-        margin-bottom: 15px;
-        text-shadow: 0 4px 20px rgba(0,0,0,.3);
-        position: relative;
-        z-index: 1;
-    }
-
-    .header .subtitle {
-        font-size: clamp(16px, 3vw, 20px);
-        opacity: 0.95;
-        margin-bottom: 10px;
-        position: relative;
-        z-index: 1;
-    }
-
-    .header .description {
-        font-size: 16px;
-        opacity: 0.8;
-        max-width: 600px;
-        margin: 0 auto;
-        position: relative;
-        z-index: 1;
-    }
-
-    .content {
-        padding: 40px;
-    }
-
-    .input-section {
-        background: rgba(255,255,255,.05);
-        border-radius: 16px;
-        padding: 30px;
-        margin-bottom: 30px;
-        border: 1px solid rgba(255,255,255,.08);
-    }
-
-    .input-group {
-        display: flex;
-        gap: 15px;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-        align-items: stretch;
-    }
-
-    input {
-        flex: 1;
-        min-width: 280px;
-        padding: 18px 24px;
-        background: rgba(255,255,255,.08);
-        border: 2px solid rgba(255,255,255,.15);
-        border-radius: 14px;
-        color: var(--text);
-        font-size: 16px;
-        font-weight: 500;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    input:focus {
-        outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 25px rgba(255, 107, 157, 0.3);
-        background: rgba(255,255,255,.12);
-        transform: translateY(-1px);
-    }
-
-    input::placeholder {
-        color: var(--muted);
-        opacity: 0.7;
-    }
-
-    .btn {
-        padding: 18px 36px;
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        border: none;
-        border-radius: 14px;
-        color: white;
-        font-weight: 700;
-        font-size: 16px;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        white-space: nowrap;
-        min-width: 160px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-
-    .btn:hover:not(:disabled) {
-        transform: translateY(-3px);
-        box-shadow: 0 20px 40px rgba(255, 107, 157, 0.4);
-    }
-
-    .btn:active {
-        transform: translateY(-1px);
-    }
-
-    .btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    .result {
-        background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
-        border: 1px solid rgba(255,255,255,.15);
-        border-radius: 20px;
-        padding: 40px;
-        margin-top: 30px;
-        opacity: 0;
-        transform: translateY(30px);
-        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .result.show {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    .kanji-display {
-        text-align: center;
-        margin-bottom: 30px;
-        position: relative;
-    }
-
-    .kanji {
-        font-size: clamp(80px, 15vw, 160px);
-        font-weight: 900;
-        background: linear-gradient(135deg, #fff 0%, #e9edff 50%, #d1d9ff 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        line-height: 1;
-        letter-spacing: 0.02em;
-        margin-bottom: 15px;
-        filter: drop-shadow(0 8px 16px rgba(0,0,0,.3));
-    }
-
-    .kana-reading {
-        font-size: 24px;
-        color: var(--muted);
-        font-weight: 600;
-        margin-bottom: 10px;
-    }
-
-    .english-reading {
-        font-size: 18px;
-        color: var(--accent);
-        font-weight: 500;
-        opacity: 0.9;
-    }
-
-    .meanings {
-        background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
-        border-left: 4px solid var(--gold);
-        padding: 25px;
-        border-radius: 16px;
-        margin-bottom: 25px;
-    }
-
-    .meanings h3 {
-        color: var(--gold);
-        font-size: 20px;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .meaning-item {
-        margin: 12px 0;
-        font-size: 16px;
-        line-height: 1.6;
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-    }
-
-    .kanji-char {
-        color: var(--primary);
-        font-weight: 700;
-        font-size: 20px;
-        min-width: 30px;
-    }
-
-    .actions {
-        display: flex;
-        gap: 12px;
-        margin-top: 25px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .btn-small {
-        padding: 12px 24px;
-        background: rgba(255,255,255,.1);
-        border: 1px solid rgba(255,255,255,.2);
-        border-radius: 25px;
-        color: var(--text);
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .btn-small:hover {
-        background: rgba(255,255,255,.2);
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(0,0,0,.2);
-    }
-
-    .examples {
-        margin-top: 35px;
-        padding: 25px;
-        background: rgba(255,255,255,.04);
-        border-radius: 16px;
-        border: 1px solid rgba(255,255,255,.08);
-    }
-
-    .examples h3 {
-        color: var(--muted);
-        font-size: 18px;
-        margin-bottom: 20px;
-        text-align: center;
-    }
-
-    .example-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 12px;
-    }
-
-    .example-tag {
-        padding: 12px 16px;
-        background: linear-gradient(135deg, rgba(159, 122, 255, 0.2), rgba(255, 107, 157, 0.2));
-        border: 1px solid rgba(159, 122, 255, 0.3);
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        text-align: center;
-    }
-
-    .example-tag:hover {
-        background: linear-gradient(135deg, rgba(159, 122, 255, 0.3), rgba(255, 107, 157, 0.3));
-        transform: translateY(-2px) scale(1.02);
-        box-shadow: 0 10px 25px rgba(159, 122, 255, 0.3);
-    }
-
-    .footer {
-        text-align: center;
-        padding: 30px;
-        color: var(--muted);
-        font-size: 14px;
-        border-top: 1px solid rgba(255,255,255,.08);
-        background: rgba(255,255,255,.02);
-    }
-
-    .footer .links {
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-        margin-top: 15px;
-        flex-wrap: wrap;
-    }
-
-    .footer .links a {
-        color: var(--accent);
-        text-decoration: none;
-        font-weight: 500;
-        transition: color 0.3s ease;
-    }
-
-    .footer .links a:hover {
-        color: var(--primary);
-    }
-
-    .loading {
-        display: none;
-        text-align: center;
-        padding: 30px;
-        color: var(--muted);
-    }
-
-    .loading.show {
-        display: block;
-    }
-
-    .spinner {
-        display: inline-block;
-        width: 24px;
-        height: 24px;
-        border: 3px solid rgba(255,255,255,.2);
-        border-radius: 50%;
-        border-top-color: var(--primary);
-        animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-    }
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-
-    .toast {
-        position: fixed;
-        bottom: 30px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: var(--success);
-        color: white;
-        padding: 12px 24px;
-        border-radius: 25px;
-        font-weight: 600;
-        opacity: 0;
-        transition: all 0.3s ease;
-        z-index: 1000;
-    }
-
-    .toast.show {
-        opacity: 1;
-        transform: translateX(-50%) translateY(-10px);
-    }
-
-    .commerce-banner {
-        background: linear-gradient(135deg, var(--accent), var(--secondary));
-        padding: 20px;
-        margin: 20px 0;
-        border-radius: 16px;
-        text-align: center;
-        color: white;
-    }
-
-    .commerce-banner h4 {
-        font-size: 18px;
-        margin-bottom: 8px;
-    }
-
-    .commerce-banner p {
-        font-size: 14px;
-        opacity: 0.9;
-    }
-
-    @media (max-width: 768px) {
-        body {
-            padding: 15px;
-        }
-        
-        .content {
-            padding: 25px;
-        }
-        
-        .input-group {
-            flex-direction: column;
-        }
-        
-        input {
-            min-width: unset;
-        }
-        
-        .actions {
-            flex-direction: column;
-        }
-        
-        .example-grid {
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        }
-        
-        .footer .links {
-            flex-direction: column;
-            gap: 10px;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .header {
-            padding: 40px 20px;
-        }
-        
-        .kanji {
-            font-size: clamp(60px, 20vw, 120px);
-        }
-    }
-</style>
-```
-
-</head>
-<body>
-    <div class="app">
-        <div class="language-switcher">
-            <select class="lang-select" id="languageSelect">
-                <option value="ja">日本語</option>
-                <option value="en">English</option>
-                <option value="zh">中文</option>
-                <option value="ko">한국어</option>
-                <option value="fr">Français</option>
-                <option value="de">Deutsch</option>
-                <option value="it">Italiano</option>
-                <option value="ar">العربية</option>
-                <option value="hi">हिंदी</option>
-                <option value="th">ไทย</option>
-            </select>
-        </div>
-
-```
-    <header class="header">
-        <h1 data-i18n="title">和名変換 🌸</h1>
-        <div class="subtitle" data-i18n="subtitle">WAMEI Converter</div>
-        <p class="description" data-i18n="description">
-            あなたの名前を美しい日本の漢字に変換します。外国人観光客のための特別な文化体験をお楽しみください。
-        </p>
-    </header>
-
-    <main class="content">
-        <section class="input-section">
-            <div class="input-group">
-                <input 
-                    id="nameInput" 
-                    type="text" 
-                    data-i18n-placeholder="inputPlaceholder"
-                    placeholder="名前を入力してください (例: Tommy, Kate, Mike...)"
-                    autocomplete="off"
-                    maxlength="20"
-                >
-                <button class="btn" id="generateBtn">
-                    <span data-i18n="generateButton">✨ 当て字を作成</span>
-                </button>
-            </div>
-        </section>
-
-        <div class="commerce-banner">
-            <h4 data-i18n="commerceTitle">🎁 あなただけの和名グッズを作りませんか？</h4>
-            <p data-i18n="commerceDescription">
-                Tシャツ、マグカップ、千社札ステッカーなど、手描きの美しい作品として残せます！
-            </p>
-        </div>
-
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p style="margin-top: 15px;" data-i18n="loading">美しい当て字を作成中...</p>
-        </div>
-
-        <section class="result" id="result">
-            <div class="kanji-display">
-                <div class="kanji" id="kanjiOutput">—</div>
-                <div class="kana-reading" id="kanaOutput" data-i18n-prefix="reading">読み: —</div>
-                <div class="english-reading" id="englishOutput">—</div>
-            </div>
-
-            <div class="meanings" id="meanings">
-                <h3 data-i18n="meaningsTitle">📖 漢字の意味</h3>
-                <div id="meaningContent"></div>
-            </div>
-
-            <div class="actions">
-                <button class="btn-small" id="copyBtn">
-                    <span>📋</span>
-                    <span data-i18n="copyButton">コピー</span>
-                </button>
-                <button class="btn-small" id="shareBtn">
-                    <span>🔗</span>
-                    <span data-i18n="shareButton">シェア</span>
-                </button>
-                <button class="btn-small" id="downloadBtn">
-                    <span>💾</span>
-                    <span data-i18n="downloadButton">画像保存</span>
-                </button>
-                <button class="btn-small" id="regenerateBtn">
-                    <span>🎲</span>
-                    <span data-i18n="regenerateButton">別パターン</span>
-                </button>
-            </div>
-        </section>
-
-        <section class="examples">
-            <h3 data-i18n="examplesTitle">💡 試してみる</h3>
-            <div class="example-grid">
-                <span class="example-tag" data-name="Tommy">Tommy</span>
-                <span class="example-tag" data-name="Kate">Kate</span>
-                <span class="example-tag" data-name="Mike">Mike</span>
-                <span class="example-tag" data-name="Sarah">Sarah</span>
-                <span class="example-tag" data-name="Alex">Alex</span>
-                <span class="example-tag" data-name="Emma">Emma</span>
-                <span class="example-tag" data-name="John">John</span>
-                <span class="example-tag" data-name="Lisa">Lisa</span>
-                <span class="example-tag" data-name="David">David</span>
-                <span class="example-tag" data-name="Maria">Maria</span>
-                <span class="example-tag" data-name="Pierre">Pierre</span>
-                <span class="example-tag" data-name="Anna">Anna</span>
-            </div>
-        </section>
-    </main>
-
-    <footer class="footer">
-        <p data-i18n="footerText">
-            同じ名前は常に同じ結果を生成します • プライバシー保護 • オフラインで動作
-        </p>
-        <div class="links">
-            <a href="#" data-i18n="aboutLink">このアプリについて</a>
-            <a href="#" data-i18n="contactLink">お問い合わせ</a>
-            <a href="#" data-i18n="shopLink">グッズ購入</a>
-            <a href="#" data-i18n="privacyLink">プライバシーポリシー</a>
-        </div>
-    </footer>
-</div>
-
-<div class="toast" id="toast"></div>
-
 <script>
-    // 多言語対応データ
-    const i18n = {
-        ja: {
-            title: "和名変換 🌸",
-            subtitle: "WAMEI Converter",
-            description: "あなたの名前を美しい日本の漢字に変換します。外国人観光客のための特別な文化体験をお楽しみください。",
-            inputPlaceholder: "名前を入力してください (例: Tommy, Kate, Mike...)",
-            generateButton: "✨ 当て字を作成",
-            commerceTitle: "🎁 あなただけの和名グッズを作りませんか？",
-            commerceDescription: "Tシャツ、マグカップ、千社札ステッカーなど、手描きの美しい作品として残せます！",
-            loading: "美しい当て字を作成中...",
-            reading: "読み:",
-            meaningsTitle: "📖 漢字の意味",
-            copyButton: "コピー",
-            shareButton: "シェア",
-            downloadButton: "画像保存",
-            regenerateButton: "別パターン",
-            examplesTitle: "💡 試してみる",
-            footerText: "同じ名前は常に同じ結果を生成します • プライバシー保護 • オフラインで動作",
-            aboutLink: "このアプリについて",
-            contactLink: "お問い合わせ",
-            shopLink: "グッズ購入",
-            privacyLink: "プライバシーポリシー",
-            copied: "コピーしました！",
-            shared: "シェアしました！",
-            downloaded: "画像を保存しました！"
-        },
-        en: {
-            title: "Japanese Name Converter 🌸",
-            subtitle: "WAMEI Converter",
-            description: "Transform your name into beautiful Japanese Kanji characters. A special cultural experience for international visitors.",
-            inputPlaceholder: "Enter your name (e.g., Tommy, Kate, Mike...)",
-            generateButton: "✨ Generate Kanji",
-            commerceTitle: "🎁 Create Your Personal Japanese Name Goods!",
-            commerceDescription: "T-shirts, mugs, stickers and more - beautifully hand-painted artwork just for you!",
-            loading: "Creating beautiful Kanji...",
-            reading: "Reading:",
-            meaningsTitle: "📖 Kanji Meanings",
-            copyButton: "Copy",
-            shareButton: "Share",
-            downloadButton: "Download",
-            regenerateButton: "Try Another",
-            examplesTitle: "💡 Try These Names",
-            footerText: "Same name always generates same result • Privacy protected • Works offline",
-            aboutLink: "About",
-            contactLink: "Contact",
-            shopLink: "Shop",
-            privacyLink: "Privacy Policy",
-            copied: "Copied!",
-            shared: "Shared!",
-            downloaded: "Image saved!"
-        },
-        zh: {
-            title: "和名转换 🌸",
-            subtitle: "WAMEI Converter",
-            description: "将您的姓名转换为美丽的日本汉字。为国际游客提供特殊的文化体验。",
-            inputPlaceholder: "请输入您的姓名 (例如: Tommy, Kate, Mike...)",
-            generateButton: "✨ 生成汉字",
-            commerceTitle: "🎁 制作您专属的和名商品！",
-            commerceDescription: "T恤、马克杯、贴纸等，手绘的美丽作品专属于您！",
-            loading: "正在创建美丽的汉字...",
-            reading: "读音:",
-            meaningsTitle: "📖 汉字含义",
-            copyButton: "复制",
-            shareButton: "分享",
-            downloadButton: "下载图片",
-            regenerateButton: "其他模式",
-            examplesTitle: "💡 试试这些",
-            footerText: "相同姓名总是生成相同结果 • 隐私保护 • 离线运行",
-            aboutLink: "关于",
-            contactLink: "联系我们",
-            shopLink: "商店",
-            privacyLink: "隐私政策",
-            copied: "已复制！",
-            shared: "已分享！",
-            downloaded: "图片已保存！"
-        },
-        ko: {
-            title: "일본어 이름 변환 🌸",
-            subtitle: "WAMEI Converter",
-            description: "당신의 이름을 아름다운 일본 한자로 변환합니다. 외국인 관광객을 위한 특별한 문화 체험.",
-            inputPlaceholder: "이름을 입력하세요 (예: Tommy, Kate, Mike...)",
-            generateButton: "✨ 한자 생성",
-            commerceTitle: "🎁 나만의 일본어 이름 굿즈를 만들어보세요!",
-            commerceDescription: "티셔츠, 머그컵, 스티커 등을 손으로 그린 아름다운 작품으로!",
-            loading: "아름다운 한자를 생성 중...",
-            reading: "읽기:",
-            meaningsTitle: "📖 한자의 의미",
-            copyButton: "복사",
-            shareButton: "공유",
-            downloadButton: "이미지 저장",
-            regenerateButton: "다른 패턴",
-            examplesTitle: "💡 이것들을 시도해보세요",
-            footerText: "같은 이름은 항상 같은 결과 생성 • 개인정보 보호 • 오프라인 작동",
-            aboutLink: "정보",
-            contactLink: "문의",
-            shopLink: "쇼핑",
-            privacyLink: "개인정보처리방침",
-            copied: "복사됨!",
-            shared: "공유됨!",
-            downloaded: "이미지 저장됨!"
-        },
-        fr: {
-            title: "Convertisseur de Nom Japonais 🌸",
-            subtitle: "WAMEI Converter",
-            description: "Transformez votre nom en beaux caractères Kanji japonais. Une expérience culturelle spéciale pour les visiteurs internationaux.",
-            inputPlaceholder: "Entrez votre nom (ex: Tommy, Kate, Mike...)",
-            generateButton: "✨ Générer Kanji",
-            commerceTitle: "🎁 Créez vos produits de nom japonais personnalisés!",
-            commerceDescription: "T-shirts, mugs, autocollants et plus - œuvres d'art peintes à la main juste pour vous!",
-            loading: "Création de beaux Kanji...",
-            reading: "Lecture:",
-            meaningsTitle: "📖 Significations des Kanji",
-            copyButton: "Copier
-```
+/* ---------- 1) 実用辞書（読みやすさ最優先） ---------- */
+const DICT = {
+  // 男性定番
+  "ken":   {kanji:"健",   reading:"けん",   meaning:"health, strength"},
+  "david": {kanji:"大輝",  reading:"だいき", meaning:"great + shine"},
+  "john":  {kanji:"譲",   reading:"じょう", meaning:"yielding, modesty"},
+  "mike":  {kanji:"舞輝",  reading:"まいく", meaning:"graceful dance + shine"},
+  "tom":   {kanji:"智",   reading:"とも",   meaning:"wisdom"},
+  "alex":  {kanji:"新",   reading:"あれく", meaning:"renewal"},
+  // 女性・中性
+  "anna":  {kanji:"安奈",  reading:"あんな", meaning:"peace + elegance"},
+  "sarah": {kanji:"咲良",  reading:"さら",  meaning:"to bloom + good"},
+  "emma":  {kanji:"恵真",  reading:"えま",  meaning:"blessing + truth"},
+  "lisa":  {kanji:"梨沙",  reading:"りさ",  meaning:"pear + sand (classic name pair)"},
+  "kate":  {kanji:"恵都",  reading:"けいと", meaning:"blessing + city"},
+  "maria": {kanji:"真理亜",reading:"まりあ", meaning:"truth + Asia (phonetic-classic)"}
+};
+
+/* ---------- 2) ポジティブ漢字プール（自動生成用） ---------- */
+const POSITIVE = [
+  {k:"大", m:"great"},
+  {k:"健", m:"healthy"},
+  {k:"輝", m:"shine"},
+  {k:"翔", m:"soar"},
+  {k:"優", m:"kind"},
+  {k:"誠", m:"sincere"},
+  {k:"愛", m:"love"},
+  {k:"光", m:"light"},
+  {k:"栄", m:"glory"},
+  {k:"希", m:"hope"},
+  {k:"真", m:"true"},
+  {k:"慧", m:"wise"},
+  {k:"美", m:"beauty"}
+];
+
+/* ---------- 3) ローマ字→片仮名（簡易ヘボン対応） ---------- */
+function toKatakana(str){
+  const s = str.trim().toLowerCase();
+  if(!s) return "";
+  // 濁点・拗音など最小限。厳密変換は将来置換を追加。
+  const table = [
+    ["kyo","キョ"],["kya","キャ"],["kyu","キュ"],
+    ["sho","ショ"],["sha","シャ"],["shu","シュ"],
+    ["cho","チョ"],["cha","チャ"],["chu","チュ"],
+    ["ryo","リョ"],["rya","リャ"],["ryu","リュ"],
+    ["jyo","ジョ"],["ja","ジャ"],["ju","ジュ"],["jo","ジョ"],
+    ["shi","シ"],["chi","チ"],["tsu","ツ"],["fu","フ"],
+    ["ka","カ"],["ki","キ"],["ku","ク"],["ke","ケ"],["ko","コ"],
+    ["sa","サ"],["su","ス"],["se","セ"],["so","ソ"],
+    ["ta","タ"],["te","テ"],["to","ト"],
+    ["na","ナ"],["ni","ニ"],["nu","ヌ"],["ne","ネ"],["no","ノ"],
+    ["ha","ハ"],["hi","ヒ"],["he","ヘ"],["ho","ホ"],
+    ["ma","マ"],["mi","ミ"],["mu","ム"],["me","メ"],["mo","モ"],
+    ["ra","ラ"],["ri","リ"],["ru","ル"],["re","レ"],["ro","ロ"],
+    ["ya","ヤ"],["yu","ユ"],["yo","ヨ"],
+    ["wa","ワ"],["wo","ヲ"],
+    ["a","ア"],["i","イ"],["u","ウ"],["e","エ"],["o","オ"],
+    ["n","ン"]
+  ];
+  let out = s;
+  for(const [r,k] of table) out = out.replaceAll(r,k);
+  return out.toUpperCase();
+}
+
+/* ---------- 4) 決定論ハッシュ（同名→同結果） ---------- */
+function hash32(str){
+  let h = 2166136261 >>> 0; // FNV-1a
+  for (let i=0;i<str.length;i++){
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/* ---------- 5) ハイブリッド生成 ---------- */
+function generateWamei(raw){
+  const key = raw.trim().toLowerCase();
+  const kana = toKatakana(raw);
+  if(!key) return null;
+
+  // 1) 辞書優先（読みやすさ担保）
+  if (DICT[key]) {
+    const d = DICT[key];
+    return {
+      kanji: d.kanji,
+      readingKana: d.reading,
+      readingEn: raw,
+      meanings: d.kanji.split("").map((ch,i)=>({k: ch, m: d.meaning.split("+")[i]?.trim() || d.meaning}))
+    };
+  }
+
+  // 2) 安全自動生成（ポジティブ限定・2〜3文字）
+  const h = hash32(key);
+  const len = 2 + (h % 2); // 2 or 3
+  let picked = [];
+  let meanings = [];
+  let x = h;
+  for(let i=0;i<len;i++){
+    x = (x * 1664525 + 1013904223) >>> 0; // LCG
+    const idx = x % POSITIVE.length;
+    picked.push(POSITIVE[idx].k);
+    meanings.push(POSITIVE[idx].m);
+  }
+  // 読みは片仮名（簡易）。将来は音訓辞書を足して精度UP。
+  return {
+    kanji: picked.join(""),
+    readingKana: kana || "—",
+    readingEn: raw,
+    meanings: picked.map((k,i)=>({k, m: meanings[i]}))
+  };
+}
+
+/* ---------- 6) UI 結線 ---------- */
+const $ = s => document.querySelector(s);
+
+function applyI18n(lang){
+  const dict = i18n[lang] || i18n.ja;
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    el.textContent = dict[el.getAttribute("data-i18n")] || el.textContent;
+  });
+  document.querySelectorAll("[data-i18n-prefix]").forEach(el=>{
+    const key = el.getAttribute("data-i18n-prefix");
+    const base = dict[key] || "";
+    const txt = el.textContent.replace(/^.*?:\s*/,"");
+    el.textContent = `${base} ${txt}`;
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{
+    const key = el.getAttribute("data-i18n-placeholder");
+    el.placeholder = dict[key] || el.placeholder;
+  });
+}
+
+function showToast(msg){
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),1200);
+}
+
+function render(result){
+  if(!result) return;
+  $("#kanjiOutput").textContent = result.kanji;
+  $("#kanaOutput").textContent = (i18n[currentLang]?.reading || "読み:") + " " + result.readingKana;
+  $("#englishOutput").textContent = result.readingEn;
+
+  const mc = $("#meaningContent");
+  mc.innerHTML = "";
+  result.meanings.forEach(({k,m})=>{
+    const div = document.createElement("div");
+    div.className = "meaning-item";
+    div.innerHTML = `<span class="kanji-char">${k}</span> <span>${m}</span>`;
+    mc.appendChild(div);
+  });
+
+  $("#result").classList.add("show");
+}
+
+let currentLang = "ja";
+applyI18n(currentLang);
+
+$("#languageSelect")?.addEventListener("change",(e)=>{
+  currentLang = e.target.value;
+  applyI18n(currentLang);
+});
+
+$("#generateBtn")?.addEventListener("click", ()=>{
+  const name = $("#nameInput").value;
+  $("#result").classList.remove("show");
+  const r = generateWamei(name);
+  render(r);
+});
+
+document.querySelectorAll(".example-tag").forEach(el=>{
+  el.addEventListener("click", ()=>{
+    $("#nameInput").value = el.dataset.name;
+    $("#generateBtn").click();
+  });
+});
+
+$("#copyBtn")?.addEventListener("click", async ()=>{
+  const txt = `${$("#kanjiOutput").textContent} (${ $("#kanaOutput").textContent })`;
+  try { await navigator.clipboard.writeText(txt); showToast((i18n[currentLang]?.copied)||"Copied!"); } catch {}
+});
+
+$("#shareBtn")?.addEventListener("click", async ()=>{
+  try{
+    await navigator.share({title:"WAMEI", text: $("#kanjiOutput").textContent, url: location.href});
+    showToast((i18n[currentLang]?.shared)||"Shared!");
+  }catch{}
+});
+
+$("#regenerateBtn")?.addEventListener("click", ()=>{
+  // “別パターン”は将来: saltを変えて任意に切替（今は固定=決定論）
+  showToast("Coming soon");
+});
+</script>
