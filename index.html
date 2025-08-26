@@ -1,137 +1,251 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>和名変換 - WAMEI Converter</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
-      background: linear-gradient(135deg,#1e1f3b,#0a0f1c); color:#fff; text-align:center; padding:30px; }
-    h1 { font-size:2em; margin-bottom:10px; }
-    input { padding:12px; font-size:18px; width:80%; max-width:300px; border-radius:8px; border:none; margin-bottom:15px; }
-    button { padding:12px 20px; font-size:16px; margin:5px; border:none; border-radius:8px; background:#6a5acd; color:#fff; cursor:pointer; }
-    .result { margin-top:20px; padding:20px; border-radius:10px; background:rgba(255,255,255,0.1); }
-    .kanji { font-size:60px; font-weight:bold; margin:10px 0; }
-    .meaning { font-size:16px; color:#ffd700; }
-    .candidates span { display:inline-block; background:rgba(255,255,255,0.2); margin:5px; padding:8px 12px; border-radius:8px; cursor:pointer; }
-    .candidates span:hover { background:rgba(255,255,255,0.4); }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WAMEI — Kanji Atoji (Hybrid)</title>
+<meta name="description" content="Enter a name. We return readable Japanese Kanji with positive meanings. Dictionary-first, phonetic fallback. Deterministic." />
+<style>
+  :root{--bg:#0b1020;--card:#151a33;--text:#e9ecff;--muted:#9aa3ff;--pri:#7c6cff;--acc:#4ecdc4;--gold:#ffd166}
+  *{box-sizing:border-box} body{margin:0;background:radial-gradient(1200px 600px at 70% -20%,#222a7f00 0,#222a7f000 60%),var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;min-height:100svh;display:grid;place-items:center;padding:24px}
+  .app{width:min(960px,100%);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.12);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden}
+  header{padding:40px 28px;background:linear-gradient(135deg,#6b5cff,#9d71ff)}
+  h1{margin:0;font-size:clamp(28px,5vw,40px)} .sub{opacity:.9;margin-top:6px}
+  main{padding:28px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  input{flex:1;min-width:240px;background:#1b2246;border:2px solid #2a316a;border-radius:12px;padding:16px 18px;color:var(--text);font-size:16px}
+  input:focus{outline:none;border-color:var(--pri)}
+  button{border:0;border-radius:12px;padding:16px 22px;font-weight:700;background:linear-gradient(135deg,var(--pri),#9d71ff);color:white;cursor:pointer}
+  .card{margin-top:20px;background:var(--card);border:1px solid #222a55;border-radius:16px;padding:22px}
+  .kanji{font-size:clamp(64px,16vw,140px);line-height:1;margin:6px 0 2px;background:linear-gradient(135deg,#fff,#d9ddff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 10px 20px rgba(0,0,0,.35));text-align:center}
+  .kana{text-align:center;color:var(--muted);font-weight:600}
+  .meaning{margin-top:18px;background:linear-gradient(135deg,rgba(255,209,102,.18),rgba(255,209,102,.06));border-left:4px solid var(--gold);padding:14px;border-radius:12px}
+  .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .chip{padding:8px 12px;border-radius:999px;background:#202652;border:1px solid #2b3472;cursor:pointer}
+  .muted{color:var(--muted)}
+</style>
 </head>
 <body>
-  <h1>🌸 和名変換アプリ - WAMEI Converter</h1>
-  <p>Enter your name and see beautiful Japanese Kanji with meanings</p>
-  <input type="text" id="nameInput" placeholder="例: Mike, David, Emma">
-  <br>
-  <button onclick="convertName()">✨ 変換する</button>
-  <div class="result" id="result" style="display:none;">
-    <div class="kanji" id="kanjiOutput">—</div>
-    <div class="meaning" id="meaningOutput"></div>
-    <div class="candidates" id="candidates"></div>
-    <button onclick="copyResult()">📋 コピー</button>
-  </div>
+<div class="app">
+  <header>
+    <h1>WAMEI — Kanji Atoji</h1>
+    <div class="sub">Dictionary-first. Phonetic fallback with positive meanings. Deterministic per name.</div>
+  </header>
+  <main>
+    <div class="row">
+      <input id="name" placeholder="Enter a name (Tom, Kate, Kevin, David…)" maxlength="30" />
+      <button id="go">✨ Generate</button>
+    </div>
+
+    <div class="card" id="out" style="display:none">
+      <div class="kanji" id="kanji">—</div>
+      <div class="kana" id="kana">—</div>
+      <div class="meaning" id="meanings">—</div>
+      <div class="chips">
+        <span class="chip" id="copyBtn">📋 Copy</span>
+        <span class="chip" id="shareBtn">🔗 Share</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="muted">Try:</div>
+      <div class="chips" id="examples"></div>
+    </div>
+  </main>
+</div>
 
 <script>
-// ローマ字→カタカナ（簡易版）
-function toKatakana(str){
-  return str.toLowerCase()
-    .replace(/shi/g,"シ").replace(/chi/g,"チ").replace(/tsu/g,"ツ").replace(/fu/g,"フ")
-    .replace(/a/g,"ア").replace(/i/g,"イ").replace(/u/g,"ウ").replace(/e/g,"エ").replace(/o/g,"オ")
-    .replace(/ka/g,"カ").replace(/ki/g,"キ").replace(/ku/g,"ク").replace(/ke/g,"ケ").replace(/ko/g,"コ")
-    .replace(/sa/g,"サ").replace(/su/g,"ス").replace(/se/g,"セ").replace(/so/g,"ソ")
-    .replace(/ta/g,"タ").replace(/te/g,"テ").replace(/to/g,"ト")
-    .replace(/na/g,"ナ").replace(/ni/g,"ニ").replace(/nu/g,"ヌ").replace(/ne/g,"ネ").replace(/no/g,"ノ")
-    .replace(/ha/g,"ハ").replace(/hi/g,"ヒ").replace(/he/g,"ヘ").replace(/ho/g,"ホ")
-    .replace(/ma/g,"マ").replace(/mi/g,"ミ").replace(/mu/g,"ム").replace(/me/g,"メ").replace(/mo/g,"モ")
-    .replace(/ra/g,"ラ").replace(/ri/g,"リ").replace(/ru/g,"ル").replace(/re/g,"レ").replace(/ro/g,"ロ")
-    .replace(/ya/g,"ヤ").replace(/yu/g,"ユ").replace(/yo/g,"ヨ")
-    .replace(/wa/g,"ワ").replace(/wo/g,"ヲ").replace(/n/g,"ン")
-    .toUpperCase();
-}
-
-// 代表50名分の辞書（例）
-const kanjiDict = {
-  "マイク":[{kanji:"舞輝",meaning:"舞う + 輝く (Dance & shine)"},{kanji:"真育",meaning:"真実 + 育む (Truth & growth)"}],
-  "デイビッド":[{kanji:"大翔",meaning:"大きく翔ぶ (Great flight)"},{kanji:"出偉翔",meaning:"偉大さを現す + 翔ぶ (Great soaring)"}],
-  "トム":[{kanji:"富夢",meaning:"富 + 夢 (Prosperity & dreams)"},{kanji:"智夢",meaning:"智 + 夢 (Wisdom & dreams)"}],
-  "ケン":[{kanji:"健",meaning:"健康 (Health)"},{kanji:"賢",meaning:"賢い (Wisdom)"}],
-  "アレックス":[{kanji:"亜礼久",meaning:"亜 + 礼 + 久 (Asia + courtesy + long)"},{kanji:"新翔",meaning:"新 + 翔ぶ (New flight)"}],
-  "ジョン":[{kanji:"城安",meaning:"城 + 安 (Fortress & peace)"},{kanji:"譲恩",meaning:"譲る + 恩 (Modesty & grace)"}],
-  "エマ":[{kanji:"恵真",meaning:"恵み + 真 (Blessing & truth)"},{kanji:"笑舞",meaning:"笑顔 + 舞う (Smile & dance)"}],
-  "アンナ":[{kanji:"安奈",meaning:"Peace & elegance"},{kanji:"杏菜",meaning:"Apricot & greens"}],
-  "サラ":[{kanji:"咲良",meaning:"咲く + 良 (Bloom & good)"},{kanji:"紗羅",meaning:"Silk & net"}],
-  "リサ":[{kanji:"梨沙",meaning:"Pear & sand"},{kanji:"理紗",meaning:"Logic & silk"}],
-  "マリア":[{kanji:"真理亜",meaning:"Truth & Asia"},{kanji:"舞莉亜",meaning:"Dance + jasmine + Asia"}],
-  "ケイト":[{kanji:"恵都",meaning:"Blessing & city"},{kanji:"啓翔",meaning:"Enlighten & fly"}],
-  "ピーター":[{kanji:"飛翔",meaning:"Fly & soar"},{kanji:"偉多",meaning:"Greatness & many"}],
-  "ポール":[{kanji:"朋流",meaning:"Friends & flow"},{kanji:"宝留",meaning:"Treasure & stay"}],
-  "クリス":[{kanji:"久理志",meaning:"Long-lasting truth & will"},{kanji:"光礼志",meaning:"Light + courtesy + will"}],
-  "ジェームズ":[{kanji:"慈夢図",meaning:"Mercy + dream + vision"},{kanji:"寿光",meaning:"Longevity & light"}],
-  "ロバート":[{kanji:"路晴翔",meaning:"Path + clear + fly"},{kanji:"朗馬都",meaning:"Bright horse city"}],
-  "リチャード":[{kanji:"理茶徳",meaning:"Logic + tea + virtue"},{kanji:"立知翔",meaning:"Stand + wisdom + fly"}],
-  "ヘンリー":[{kanji:"遍利",meaning:"Benefit all"},{kanji:"平礼",meaning:"Peace + courtesy"}],
-  "ウィリアム":[{kanji:"和利夢",meaning:"Harmony + benefit + dream"},{kanji:"威礼舞",meaning:"Majesty + courtesy + dance"}],
-  "ジョージ":[{kanji:"譲司",meaning:"Modesty + master"},{kanji:"城治",meaning:"Castle + govern"}],
-  "ハリー":[{kanji:"晴理",meaning:"Clear + truth"},{kanji:"羽利",meaning:"Feather + benefit"}],
-  "ルーカス":[{kanji:"流輝翔",meaning:"Flow + shine + fly"},{kanji:"瑠香翔",meaning:"Lapis + fragrance + fly"}],
-  "ノア":[{kanji:"望安",meaning:"Hope & peace"},{kanji:"乃愛",meaning:"Of love"}],
-  "オリバー":[{kanji:"織羽",meaning:"Weave + feather"},{kanji:"雄葉",meaning:"Male + leaf"}],
-  "ジャック":[{kanji:"慈明久",meaning:"Mercy + bright + long"},{kanji:"翔空",meaning:"Soaring sky"}],
-  "ダニエル":[{kanji:"大仁恵",meaning:"Great + benevolence + blessing"},{kanji:"断栄",meaning:"Strong + glory"}],
-  "アンドリュー":[{kanji:"安翔流",meaning:"Peace + soar + flow"},{kanji:"案徳龍",meaning:"Idea + virtue + dragon"}],
-  "マシュー":[{kanji:"真秀",meaning:"True + excellence"},{kanji:"舞周",meaning:"Dance + around"}],
-  "サミュエル":[{kanji:"咲夢栄",meaning:"Bloom + dream + glory"},{kanji:"佐光",meaning:"Assistant + light"}],
-  "ルーク":[{kanji:"流久",meaning:"Flow + long-lasting"},{kanji:"瑠空",meaning:"Lapis + sky"}],
-  "ジョセフ":[{kanji:"譲聖",meaning:"Modesty + holy"},{kanji:"助福",meaning:"Help + blessing"}],
-  "アンジェラ":[{kanji:"安寿羅",meaning:"Peace + longevity + net"},{kanji:"愛星羅",meaning:"Love + star + net"}],
-  "ベンジャミン":[{kanji:"勉慈夢",meaning:"Study + mercy + dream"},{kanji:"弁翔",meaning:"Eloquent + fly"}],
-  "グレース":[{kanji:"恵麗姿",meaning:"Blessing + beauty + figure"},{kanji:"雅礼栄",meaning:"Elegance + courtesy + glory"}],
-  "ヴィクトリア":[{kanji:"美栄翔",meaning:"Beauty + glory + soar"},{kanji:"勝利愛",meaning:"Victory + love"}],
-  "シャーロット":[{kanji:"翔羅都",meaning:"Fly + net + city"},{kanji:"咲都礼",meaning:"Bloom + city + courtesy"}],
-  "ソフィア":[{kanji:"聡麗",meaning:"Wisdom + beauty"},{kanji:"想妃愛",meaning:"Thought + queen + love"}],
-  "イザベラ":[{kanji:"伊座麗羅",meaning:"Elegant throne net"},{kanji:"依咲美",meaning:"Depend + bloom + beauty"}],
-  "エリザベス":[{kanji:"恵麗座寿",meaning:"Blessing + beauty + seat + longevity"},{kanji:"栄里座",meaning:"Glory + village + seat"}],
-  "カレン":[{kanji:"花蓮",meaning:"Flower + lotus"},{kanji:"華恋",meaning:"Splendid + love"}],
-  "ジェシカ":[{kanji:"慈志香",meaning:"Mercy + will + fragrance"},{kanji:"樹詩華",meaning:"Tree + poem + flower"}],
-  "ナンシー":[{kanji:"南詩",meaning:"South + poem"},{kanji:"菜星",meaning:"Greens + star"}],
-  "メアリー":[{kanji:"芽愛理",meaning:"Sprout + love + truth"},{kanji:"明里",meaning:"Bright + village"}],
-  "キャサリン":[{kanji:"佳咲凛",meaning:"Splendid + bloom + dignified"},{kanji:"香里音",meaning:"Fragrance + village + sound"}],
-  "アリス":[{kanji:"愛理栖",meaning:"Love + truth + dwell"},{kanji:"亜梨澄",meaning:"Asia + pear + pure"}],
-  "エヴァ":[{kanji:"恵羽",meaning:"Blessing + feather"},{kanji:"栄和",meaning:"Glory + harmony"}],
-  "ローラ":[{kanji:"朗良",meaning:"Bright + good"},{kanji:"路愛",meaning:"Path + love"}]
+/* ===== 1) Dictionary (50+)  ===== */
+const dict = {
+  "mike": ["舞恵","まいけ","mai-ke","舞=to dance; 恵=blessing"],
+  "tom": ["智友","とも","to-mo","智=wisdom; 友=friend"],
+  "tommy": ["智巳","とみ","to-mi","智=wisdom; 巳=sign of snake (tenacity)"],
+  "kate": ["佳音","けいと","ke-i-to","佳=excellent; 音=sound"],
+  "kevin": ["恵翔","けびん","ke-bin","恵=blessing; 翔=soar"],
+  "ken": ["健","けん","ke-n","健=healthy"],
+  "john": ["城安","じょうん","jo-n","城=castle; 安=peace"],
+  "jane": ["慈音","じぇいん","je-in","慈=kindness; 音=sound"],
+  "david": ["大輝","でいびっど","de-i-bi-d","大=great; 輝=shine"],
+  "alex": ["明礼","あれっくす","a-re-ku-su","明=bright; 礼=courtesy"],
+  "emma": ["恵真","えま","e-ma","恵=blessing; 真=true"],
+  "anna": ["杏奈","あんな","an-na","杏=apricot (warm); 奈=grace"],
+  "lisa": ["莉咲","りさ","ri-sa","莉=jasmine; 咲=bloom"],
+  "sarah": ["咲良","さら","sa-ra","咲=bloom; 良=good"],
+  "maria": ["真理愛","まりあ","ma-ri-a","真理=truth; 愛=love"],
+  "peter": ["平翔","ぺたー","pe-ta","平=peace; 翔=soar"],
+  "pierre": ["光礼","ぴえーる","pi-e-ru","光=light; 礼=courtesy"],
+  "oliver": ["織晴","おりばー","o-ri-ba","織=weave; 晴=clear"],
+  "lucas": ["流佳","るーかす","ru-ka-su","流=flow; 佳=excellent"],
+  "noah": ["望陽","のあ","no-a","望=hope; 陽=sun"],
+  "ethan": ["栄端","いーさん","e-san","栄=glory; 端=begin"],
+  "liam": ["理天","りあむ","ri-a-mu","理=reason; 天=sky"],
+  "william": ["和礼","うぃりあむ","wi-ri-a-mu","和=harmony; 礼=courtesy"],
+  "george": ["譲治","じょーじ","jo-ji","譲=yield (kind); 治=govern (calm)"],
+  "charles": ["智流","ちゃーるず","cha-ru-zu","智=wisdom; 流=flow"],
+  "harry": ["晴里","はりー","ha-ri","晴=clear; 里=village (home)"],
+  "jack": ["慈駆","じゃっく","ja-kku","慈=mercy; 駆=drive"],
+  "jacob": ["慈光","じぇいこぶ","je-ko-bu","慈=kindness; 光=light"],
+  "daniel": ["暖栄","だにえる","da-nie-ru","暖=warm; 栄=glory"],
+  "james": ["仁明","じぇいむず","je-mu-zu","仁=humanity; 明=bright"],
+  "matthew": ["真翔","ましゅー","ma-shu","真=true; 翔=soar"],
+  "anthony": ["安登仁","あんそにー","an-so-ni","安=peace; 登=rise; 仁=humanity"],
+  "andrew": ["安流","あんどりゅー","an-ryu","安=peace; 流=flow"],
+  "christopher": ["輝人","くりすとふぁー","ku-ri-su-to","輝=shine; 人=person"],
+  "benjamin": ["弁仁美","べんじゃみん","ben-ja-min","弁=eloquence; 仁=kind; 美=beauty"],
+  "steven": ["星天","すてぃーぶん","su-ti-bun","星=star; 天=sky"],
+  "keith": ["恵志","けいす","kei-su","恵=blessing; 志=will"],
+  "ryan": ["凌安","りあん","ri-an","凌=rise; 安=peace"],
+  "eric": ["栄陸","えりっく","e-rik","栄=glory; 陸=land"],
+  "robert": ["朗伯","ろばーと","ro-ba-to","朗=clear; 伯=leader"],
+  "richard": ["理翔","りちゃーど","ri-cha-do","理=reason; 翔=soar"],
+  "henry": ["賢礼","へんりー","hen-ri","賢=wise; 礼=courtesy"],
+  "victor": ["翼登","びくたー","bi-ku-ta","翼=wing; 登=rise"],
+  "keira": ["恵良","けいら","kei-ra","恵=blessing; 良=good"],
+  "olivia": ["織美和","おりびあ","o-ri-bi-a","織=weave; 美=beauty; 和=harmony"],
+  "sofia": ["蒼緋愛","そふぃあ","so-fi-a","蒼=blue; 緋=scarlet; 愛=love"],
+  "emily": ["笑美里","えみりー","e-mi-ri","笑=smile; 美=beauty; 里=home"],
+  "grace": ["雅聖","ぐれいす","gu-re-is","雅=elegant; 聖=holy"],
+  "natalie": ["菜多莉","なたりー","na-ta-ri","菜=green; 多=many; 莉=jasmine"],
+  "isabella": ["泉美良","いざべら","i-za-be-ra","泉=spring; 美=beauty; 良=good"]
 };
 
-// 変換処理
-function convertName(){
-  const input = document.getElementById("nameInput").value.trim();
-  if(!input) return;
-  const kana = toKatakana(input);
-  const result = document.getElementById("result");
-  const kanjiOutput = document.getElementById("kanjiOutput");
-  const meaningOutput = document.getElementById("meaningOutput");
-  const candidates = document.getElementById("candidates");
-  candidates.innerHTML="";
-
-  if(kanjiDict[kana]){
-    const first=kanjiDict[kana][0];
-    kanjiOutput.textContent=first.kanji;
-    meaningOutput.textContent=first.meaning;
-    kanjiDict[kana].forEach(c=>{
-      const span=document.createElement("span");
-      span.textContent=c.kanji;
-      span.onclick=()=>{kanjiOutput.textContent=c.kanji; meaningOutput.textContent=c.meaning;};
-      candidates.appendChild(span);
-    });
-    result.style.display="block";
-  }else{
-    kanjiOutput.textContent="？";
-    meaningOutput.textContent="辞書に登録がありません";
-    result.style.display="block";
+/* ===== 2) Romaji → Katakana (very small, name-safe) ===== */
+const romajiMap = [
+  ["kyo","キョ"],["kya","キャ"],["kyu","キュ"],
+  ["sho","ショ"],["sha","シャ"],["shu","シュ"],
+  ["cho","チョ"],["cha","チャ"],["chu","チュ"],
+  ["ryo","リョ"],["rya","リャ"],["ryu","リュ"],
+  ["jyo","ジョ"],["ja","ジャ"],["ju","ジュ"],["jo","ジョ"],
+  ["tsu","ツ"],["shi","シ"],["chi","チ"],["fu","フ"],
+  ["aa","アー"],["ee","イー"],["ii","イー"],["oo","オー"],["uu","ウー"]
+];
+function toKatakana(s){
+  s=s.toLowerCase().replace(/[^a-z]/g,"");
+  for(const [r,k] of romajiMap) s=s.replaceAll(r,k);
+  // basic consonant+vowel
+  const cv = {a:"ア",i:"イ",u:"ウ",e:"エ",o:"オ"};
+  const c = {k:"カ",s:"サ",t:"タ",n:"ナ",h:"ハ",m:"マ",y:"ヤ",r:"ラ",w:"ワ",g:"ガ",z:"ザ",d:"ダ",b:"バ",p:"パ",j:"ジャ"};
+  let out="", i=0;
+  while(i<s.length){
+    if(/[ア-ンー]/.test(s[i])){ out+=s[i++]; continue; }
+    const ch=s[i], nx=s[i+1];
+    if(c[ch] && cv[nx]){ out+=c[ch].replace("ア",cv[nx]); i+=2; continue; }
+    if(cv[ch]){ out+=cv[ch]; i++; continue; }
+    i++; // skip unknown
   }
+  return out || "ユーザー";
 }
 
-function copyResult(){
-  const text=document.getElementById("kanjiOutput").textContent;
-  navigator.clipboard.writeText(text).then(()=>{alert("コピーしました: "+text);});
+/* ===== 3) Phonetic syllable → positive Kanji pool ===== */
+const sylPool = {
+  "ア":["愛","旭","明"], "イ":["泉","陽","一"], "ウ":["羽","宇","優"],
+  "エ":["栄","恵","英"], "オ":["桜","旺","音"],
+  "カ":["佳","嘉","香"], "キ":["輝","希","吉"], "ク":["空","久","功"],
+  "ケ":["恵","景","慶"], "コ":["光","湖","幸"],
+  "サ":["咲","紗","彩"], "シ":["志","詩","紫"], "ス":["澄","栖","周"],
+  "セ":["聖","晴","世"], "ソ":["蒼","爽","奏"],
+  "タ":["太","達","拓"], "チ":["智","千","治"], "ツ":["翼","津","鼓"],
+  "テ":["天","照","禎"], "ト":["登","斗","翔"],
+  "ナ":["奈","菜","和"], "ニ":["仁","虹","新"], "ヌ":["縫","温"],
+  "ネ":["音","寧"], "ノ":["望","野"],
+  "ハ":["波","葉","晴"], "ヒ":["陽","飛","姫"], "フ":["風","富","福"],
+  "ヘ":["碧","辺"], "ホ":["穂","宝","芳"],
+  "マ":["真","舞","万"], "ミ":["美","実","光"], "ム":["夢","武"],
+  "メ":["芽","明"], "モ":["守","萌","望"],
+  "ヤ":["也","矢","弥"], "ユ":["優","祐"], "ヨ":["陽","世","耀"],
+  "ラ":["来","蘭","良"], "リ":["理","璃","莉"], "ル":["流","留"],
+  "レ":["礼","麗","玲"], "ロ":["朗","路","炉"],
+  "ワ":["和","環","羽"], "ン":["音","恩"]
+};
+const kanjiMeaning = {
+  "愛":"love","旭":"rising sun","明":"bright","泉":"spring","陽":"sun",
+  "一":"one","羽":"wing","宇":"universe","優":"gentle","栄":"glory",
+  "恵":"blessing","英":"brave","桜":"cherry","旺":"prosper",
+  "音":"sound","佳":"excellent","嘉":"auspicious","香":"fragrant",
+  "輝":"shine","希":"hope","吉":"good fortune","空":"sky","久":"long-lasting",
+  "功":"achievement","景":"scenery","慶":"celebration","光":"light",
+  "湖":"lake","幸":"happiness","咲":"bloom","紗":"gauze","彩":"color",
+  "志":"will","詩":"poem","紫":"purple","澄":"clear","栖":"nest","周":"cycle",
+  "聖":"holy","晴":"clear","世":"world","蒼":"blue","爽":"fresh","奏":"play",
+  "太":"great","達":"accomplish","拓":"open","智":"wisdom","千":"thousand",
+  "治":"govern","翼":"wing","津":"haven","鼓":"drum","天":"sky","照":"shine",
+  "禎":"good omen","登":"rise","斗":"dipper","翔":"soar","奈":"grace",
+  "菜":"greens","和":"harmony","仁":"benevolence","虹":"rainbow","新":"new",
+  "縫":"stitch","温":"warm","音":"sound","寧":"peaceful","望":"hope","野":"field",
+  "波":"wave","葉":"leaf","陽":"sun","飛":"fly","姫":"princess","風":"wind",
+  "富":"wealth","福":"fortune","碧":"blue-green","辺":"edge","穂":"ear (grain)",
+  "宝":"treasure","芳":"fragrant","真":"true","舞":"dance","万":"many",
+  "美":"beauty","実":"real","光":"light","夢":"dream","武":"brave",
+  "芽":"bud","守":"protect","萌":"sprout","也":"also","矢":"arrow","弥":"ever more",
+  "優":"gentle","祐":"help","耀":"shine","来":"come","蘭":"orchid","良":"good",
+  "理":"logic","璃":"lapis","莉":"jasmine","流":"flow","留":"stay",
+  "礼":"courtesy","麗":"lovely","玲":"tinkle","朗":"clear","路":"road","炉":"hearth",
+  "環":"ring","羽":"feather","恩":"grace"
+};
+
+/* ===== Helpers ===== */
+function hash(s){ let h=2166136261>>>0; for(const ch of s) { h^=ch.charCodeAt(0); h=Math.imul(h,16777619)>>>0; } return h; }
+function pick(arr,seed,i){ return arr[(seed+i)%arr.length]; }
+
+/* ===== Core generator ===== */
+function generate(nameRaw){
+  const key=nameRaw.trim().toLowerCase();
+  if(!key) return null;
+
+  // 1) Dictionary-first
+  if(dict[key]){
+    const [kanji,kana,roman,desc]=dict[key];
+    return {kanji,kana,meanings:desc.split("; ").map(s=>"• "+s)};
+  }
+
+  // 2) Phonetic fallback
+  const kana=toKatakana(key);
+  // split kana to rough syllables (first char per kana)
+  const chars=[...kana].filter(c=>/^[ァ-ン]$/.test(c)).map(c=>c.toUpperCase());
+  const seed=hash(key);
+  const outKanji=[];
+  const notes=[];
+  for(let i=0;i<Math.min(3,Math.max(2,chars.length));i++){
+    const base = sylPool[chars[i]] || sylPool["ア"];
+    const k = pick(base, seed, i);
+    outKanji.push(k);
+    notes.push(`${k} = ${kanjiMeaning[k]||"good"}`);
+  }
+  return {kanji: outKanji.join(""), kana, meanings: notes.map(n=>"• "+n)};
+}
+
+/* ===== UI wiring ===== */
+const $=sel=>document.querySelector(sel);
+const examples=["Tom","Ken","Kevin","David","Emma","Sarah","Alex","Liam","Olivia","Lucas","Grace","Isabella"];
+$("#examples").innerHTML=examples.map(n=>`<span class="chip" data-n="${n}">${n}</span>`).join("");
+$("#examples").addEventListener("click",e=>{const n=e.target.dataset.n;if(n){$("#name").value=n; run();}});
+
+function run(){
+  const name=$("#name").value;
+  const res=generate(name);
+  const out=$("#out");
+  if(!res){ out.style.display="none"; return; }
+  $("#kanji").textContent=res.kanji;
+  $("#kana").textContent = `kana: ${toKatakana(name)}`;
+  $("#meanings").innerHTML = `<strong>Meanings</strong><br>${res.meanings.join("<br>")}`;
+  out.style.display="";
+}
+$("#go").addEventListener("click",run);
+$("#name").addEventListener("keydown",e=>{ if(e.key==="Enter") run(); });
+
+$("#copyBtn").addEventListener("click",async ()=>{
+  const t = `${$("#kanji").textContent} (${$("#kana").textContent.replace("kana: ","")})`;
+  try{ await navigator.clipboard.writeText(t); toast("Copied"); }catch{}
+});
+$("#shareBtn").addEventListener("click",async ()=>{
+  const t = `${$("#kanji").textContent} — ${$("#meanings").innerText}`;
+  if(navigator.share){ try{ await navigator.share({title:"WAMEI",text:t}); }catch{} }
+  else{ await navigator.clipboard.writeText(t); toast("Copied link text"); }
+});
+function toast(msg){
+  const el=document.createElement("div");
+  el.textContent=msg; el.style.cssText="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#4ade80;color:#fff;padding:10px 16px;border-radius:999px;font-weight:700";
+  document.body.appendChild(el); setTimeout(()=>el.remove(),1400);
 }
 </script>
 </body>
