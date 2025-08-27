@@ -1,232 +1,104 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>和名変換（WAMEI Converter）</title>
-<meta name="description" content="外国人の名前を日本人が読める漢字に。当て字は意味つきで、同じ名前は常に同じ結果。"/>
-<style>
-  :root{
-    --bg:#0a0f1c;--panel:#11172f;--text:#eef1ff;--muted:#9aa3ff;
-    --pri:#846bff;--sec:#ff6ba3;--ok:#27d07d;--bd:rgba(255,255,255,.12);
-    --r:16px;
-  }
-  *{box-sizing:border-box}body{margin:0;min-height:100vh;background:
-  radial-gradient(1200px 600px at 70% -20%, #243095 0%, transparent 60%),
-  radial-gradient(900px 600px at -10% 110%, #7928ca 0%, transparent 55%),
-  var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans JP',sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}
-  .card{width:min(960px,100%);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid var(--bd);border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.45);overflow:hidden}
-  header{padding:42px 28px;background:linear-gradient(135deg,var(--pri),var(--sec))}
-  h1{margin:0;font-size:clamp(24px,4.5vw,40px)}
-  .sub{opacity:.9}
-  main{padding:28px}
-  .row{display:flex;gap:12px;flex-wrap:wrap}
-  input{flex:1;min-width:260px;padding:16px 18px;border-radius:12px;border:1px solid var(--bd);background:rgba(255,255,255,.06);color:var(--text);font-size:16px}
-  button{padding:16px 20px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--pri),var(--sec));color:#fff;font-weight:700;cursor:pointer}
-  .result{margin-top:24px;padding:22px;border:1px solid var(--bd);border-radius:16px;background:rgba(255,255,255,.04)}
-  .kanji{font-size:clamp(56px,12vw,140px);line-height:1;margin:6px 0;background:linear-gradient(135deg,#fff,#e7ebff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center}
-  .muted{color:var(--muted)}
-  .mean{margin:10px 0 0 0;padding:14px;border-left:4px solid #ffd54a;background:linear-gradient(135deg,rgba(255,213,74,.18),rgba(255,213,74,.06));border-radius:12px}
-  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-  .chip{padding:8px 12px;border:1px solid var(--bd);border-radius:999px;background:rgba(255,255,255,.06);cursor:pointer}
-  .ok{color:#0d3b28;background:rgba(39,208,125,.18);border-color:rgba(39,208,125,.35)}
-  .tip{font-size:13px;margin-top:6px;color:var(--muted)}
-</style>
-</head>
-<body>
-<div class="card">
-  <header>
-    <h1>和名変換（WAMEI Converter）</h1>
-    <div class="sub">同じ名前は常に同じ結果。意味つきで“読める”漢字を返します。</div>
-  </header>
-
-  <main>
-    <div class="row">
-      <input id="name" placeholder="例: Mike, Karen, David, Tom, Emma…"/>
-      <button id="btn">✨ 変換する</button>
-    </div>
-    <div class="tip">※ 最優先の「指名変換」→ 辞書 → 発音ハイブリッド の順で決定。</div>
-
-    <div class="result" id="result" style="display:none">
-      <div class="kanji" id="outKanji">—</div>
-      <div class="muted" id="outKana">kana: —</div>
-      <div class="muted" id="outRomaji">romaji: —</div>
-      <div class="mean" id="outMean">—</div>
-      <div class="chips">
-        <span class="chip" id="copy">📋 コピー</span>
-        <span class="chip" id="share">🔗 共有</span>
-        <span class="chip ok" id="lockTip">指名変換があれば必ずそれを返します</span>
-      </div>
-    </div>
-
-    <div class="chips" style="margin-top:18px">
-      <span class="chip" data-ex="Mike">Mike</span>
-      <span class="chip" data-ex="Karen">Karen</span>
-      <span class="chip" data-ex="David">David</span>
-      <span class="chip" data-ex="Tom">Tom</span>
-      <span class="chip" data-ex="Ken">Ken</span>
-      <span class="chip" data-ex="Emma">Emma</span>
-    </div>
-  </main>
+<!-- ▼ Language switcher（ヘッダーのどこかに置く） -->
+<div class="language-switcher" style="position:absolute;right:16px;top:16px;">
+  <select id="langSel" style="padding:8px 10px;border-radius:10px;">
+    <option value="en">English</option>
+    <option value="ja">日本語</option>
+    <option value="zh">中文</option>
+    <option value="ko">한국어</option>
+    <option value="fr">Français</option>
+    <option value="de">Deutsch</option>
+  </select>
 </div>
 
 <script>
-/* =========================
-   1) デザイナー“指名変換”（最優先）
-   ここに増やせば即反映。読みはカタカナでOK。
-========================= */
-const overrides = {
-  "karen": { kanji:"薫連", kana:"カレン",
-    meanings:["薫 = fragrance / refined","連 = connected / together"] },
-  "mike":  { kanji:"真行", kana:"マイク",
-    meanings:["真 = true / genuine","行 = journey / proceed"] },
-  // 追加例:
-  // "kate": { kanji:"佳音", kana:"ケイト",
-  //   meanings:["佳 = excellent / graceful","音 = sound / tone"] },
+/* ====== 1) 翻訳辞書（必要に応じて増やす） ====== */
+const I18N = {
+  en: {
+    title: "Wamei — Kanji Atoji Maker",
+    subtitle: "Enter a name (Latin or Katakana). We return readable kanji with positive meanings.",
+    placeholder: "Enter your name (e.g., Mike, Karen, David, Tom…)",
+    gen: "Generate",
+    kana: "kana",
+    romaji: "romaji",
+    meanings: "Kanji meanings",
+    copy: "Copy",
+    share: "Share",
+    note: "Dictionary-first → hybrid phonetics. Same name → same result."
+  },
+  ja: {
+    title: "和名変換（WAMEI Converter）",
+    subtitle: "英字/カナ入力OK。日本人が読める当て字と良い意味を返します。",
+    placeholder: "名前を入力（例：Mike, Karen, David, Tom…）",
+    gen: "✨ 変換する",
+    kana: "kana",
+    romaji: "romaji",
+    meanings: "漢字の意味",
+    copy: "コピー",
+    share: "共有",
+    note: "辞書優先 → 発音ハイブリッド。同名は常に同じ結果。"
+  },
+  zh: { title:"和名转换", subtitle:"输入姓名（拉丁或片假名），返回可读汉字与积极含义。",
+        placeholder:"输入姓名（如：Mike, Karen…）", gen:"生成", kana:"读音", romaji:"罗马字",
+        meanings:"汉字含义", copy:"复制", share:"分享", note:"词典优先 → 发音混合。同名同结果。" },
+  ko: { title:"일본식 이름 변환", subtitle:"영문/가타카나 입력 OK. 읽기 쉬운 한자와 좋은 뜻을 반환.",
+        placeholder:"이름 입력 (예: Mike, Karen…)", gen:"생성", kana:"kana", romaji:"romaji",
+        meanings:"한자의 의미", copy:"복사", share:"공유", note:"사전 우선 → 발음 하이브리드. 동일 이름 동일 결과." },
+  fr: { title:"Convertisseur de nom japonais", subtitle:"Saisissez un nom. Kanji lisibles + sens positifs.",
+        placeholder:"Entrez un nom (ex : Mike, Karen…)", gen:"Générer", kana:"kana",
+        romaji:"romaji", meanings:"Sens des kanji", copy:"Copier", share:"Partager",
+        note:"Dictionnaire d'abord → phonétique hybride. Même nom → même résultat." },
+  de: { title:"Japanischer Namens-Konverter", subtitle:"Name eingeben. Lesbare Kanji mit positiver Bedeutung.",
+        placeholder:"Name eingeben (z. B. Mike, Karen…)", gen:"Generieren", kana:"Kana",
+        romaji:"Romaji", meanings:"Kanji-Bedeutungen", copy:"Kopieren", share:"Teilen",
+        note:"Wörterbuch zuerst → Hybrid-Aussprache. Gleicher Name → gleiches Ergebnis." }
 };
 
-/* =========================
-   2) 固定辞書（読みやすい定番）
-========================= */
-const dict = {
-  "tom":   ["斗夢","トム","tom","斗 = dipper; 夢 = dream"],
-  "ken":   ["健","ケン","ken","健 = health; strong"],
-  "kevin": ["慶文","ケビン","kevin","慶 = celebrate; 文 = literature"],
-  "david": ["大翔","デイビッド","david","大 = great; 翔 = soar"],
-  "john":  ["城安","ジョン","john","城 = castle; 安 = peace"],
-  "emma":  ["恵真","エマ","emma","恵 = blessing; 真 = true"],
-  "sarah": ["咲良","サラ","sarah","咲 = bloom; 良 = good"],
-  "anna":  ["杏奈","アンナ","anna","杏 = apricot; 奈 = elegant"],
-  "alex":  ["亜礼士","アレックス","alex","亜 = sub/Asia; 礼 = courtesy; 士 = person"],
-  "maria": ["真里愛","マリア","maria","真 = true; 里 = village; 愛 = love"],
-  "peter": ["飛翔","ピーター","peter","飛 = fly; 翔 = soar"],
-  "paul":  ["宝流","ポール","paul","宝 = treasure; 流 = flow"],
-  "mark":  ["真輝","マーク","mark","真 = true; 輝 = shine"],
-  "lisa":  ["莉紗","リサ","lisa","莉 = jasmine; 紗 = gauze"],
-  "chris": ["智礼士","クリス","chris","智 = wisdom; 礼 = courtesy; 士 = person"],
-  "james": ["慈明","ジェームズ","james","慈 = mercy; 明 = bright"],
-  "robert":["朗伯","ロバート","robert","朗 = clear; 伯 = chief"],
-  "daniel":["大仁恵","ダニエル","daniel","大 = great; 仁 = benevolence; 恵 = blessing"],
-  "william":["和礼夢","ウィリアム","william","和 = harmony; 礼 = courtesy; 夢 = dream"]
-};
-
-/* =========================
-   3) 発音ハイブリッド（安全フィルタ）
-   - kana へ簡易変換（英語名/カナ両対応）
-   - 音節ごとにポジティブ漢字から選択
-   - 名前ごとに安定するシード
-========================= */
-const sylPool = {
-  "ア":["愛","明","安"], "イ":["以","伊","維"], "ウ":["宇","羽","優"], "エ":["恵","栄","映"], "オ":["央","旺","桜"],
-  "カ":["佳","香","華"], "キ":["希","輝","喜"], "ク":["行","久","空"], "ケ":["慶","慧","景"], "コ":["光","幸","航"],
-  "サ":["咲","紗","彩"], "シ":["志","詩","史"], "ス":["澄","寿","洲"], "セ":["清","聖","晴"], "ソ":["奏","蒼","爽"],
-  "タ":["拓","太","泰"], "チ":["知","智","千"], "ツ":["津","翼","恒"], "テ":["天","貞","定"], "ト":["斗","登","登"],
-  "ナ":["奈","成","和"], "ニ":["仁","新","虹"], "ヌ":["縫","温"], "ネ":["音","寧"], "ノ":["乃","希"],
-  "ハ":["葉","華","映"], "ヒ":["陽","飛","妃"], "フ":["風","富","福"], "ヘ":["碧","逸"], "ホ":["星","帆","穂"],
-  "マ":["真","舞","万"], "ミ":["美","実","海"], "ム":["夢","睦"], "メ":["芽","明"], "モ":["望","守","萌"],
-  "ヤ":["優","也","矢"], "ユ":["由","悠","友"], "ヨ":["陽","世","誉"],
-  "ラ":["良","羅","来"], "リ":["莉","里","理"], "ル":["流","瑠","留"], "レ":["連","麗","礼"], "ロ":["朗","路","璐"],
-  "ワ":["和","環","羽"], "ン":["音","恩","縁"]
-};
-
-// 簡易ローマ字→カナ（英名用・超簡略）
-function toKana(name){
-  const s=name.toLowerCase();
-  // サクッと置換（本格的なローマ字変換でなく“だいたい”でOK）
-  return s
-   .replace(/[^a-z]/g,'')
-   .replace(/shi/g,'シ').replace(/chi/g,'チ').replace(/tsu/g,'ツ').replace(/dji|ji/g,'ジ')
-   .replace(/kyo/g,'キョ').replace(/kya/g,'キャ').replace(/kyu/g,'キュ')
-   .replace(/ryo/g,'リョ').replace(/rya/g,'リャ').replace(/ryu/g,'リュ')
-   .replace(/nyo/g,'ニョ').replace(/nya/g,'ニャ').replace(/nyu/g,'ニュ')
-   .replace(/byo/g,'ビョ').replace(/bya/g,'ビャ').replace(/byu/g,'ビュ')
-   .replace(/pyo/g,'ピョ').replace(/pya/g,'ピャ').replace(/pyu/g,'ピュ')
-   .replace(/tyo|cho/g,'チョ').replace(/tya|cya/g,'チャ').replace(/tyu|cyu/g,'チュ')
-   .replace(/jyo|jo/g,'ジョ').replace(/jya|ja/g,'ジャ').replace(/jyu|ju/g,'ジュ')
-   .replace(/fa/g,'ファ').replace(/fi/g,'フィ').replace(/fu/g,'フ').replace(/fe/g,'フェ').replace(/fo/g,'フォ')
-   .replace(/xa|la/g,'ァ').replace(/xi|li/g,'ィ').replace(/xu|lu/g,'ゥ').replace(/xe|le/g,'ェ').replace(/xo|lo/g,'ォ')
-   .replace(/a/g,'ア').replace(/i/g,'イ').replace(/u/g,'ウ').replace(/e/g,'エ').replace(/o/g,'オ')
-   .replace(/k/g,'ク').replace(/s/g,'ス').replace(/t/g,'ト').replace(/n/g,'ン').replace(/h/g,'フ')
-   .replace(/m/g,'ム').replace(/y/g,'イ').replace(/r/g,'ル').replace(/w/g,'ウ'); // とても大雑把
+/* ====== 2) 自動判定（URL > ローカル保存 > ブラウザ言語） ====== */
+function detectLang(){
+  // /en や ?lang=en に対応
+  const pathLang = location.pathname.split('/').filter(Boolean)[0];
+  const urlLang  = new URLSearchParams(location.search).get('lang');
+  const saved    = localStorage.getItem('wamei_lang');
+  const navLang  = (navigator.language||'en').slice(0,2);
+  const cand = (urlLang || pathLang || saved || navLang || 'en').toLowerCase();
+  return I18N[cand] ? cand : 'en';
 }
 
-// 決定的ランダム
-function rng(seed){ let x=0; for(const c of seed) x=(x*131+ c.charCodeAt(0))>>>0; return ()=> (x = (x*1664525+1013904223)>>>0) / 2**32; }
+/* ====== 3) 適用（data-i18n 属性に流し込む） ====== */
+function applyLang(lang){
+  const t = I18N[lang]; if(!t) return;
+  document.documentElement.setAttribute('lang', lang);
+  // テキスト
+  const set = (sel, key)=>{ const el = document.querySelector(sel); if(el && t[key]) el.textContent = t[key]; };
+  set('[data-i18n=title]', 'title');
+  set('[data-i18n=subtitle]', 'subtitle');
+  set('[data-i18n=gen]', 'gen');
+  set('[data-i18n=meanings]', 'meanings');
+  set('[data-i18n=copy]', 'copy');
+  set('[data-i18n=share]', 'share');
+  set('[data-i18n=note]', 'note');
+  // プレースホルダ
+  const inp = document.querySelector('#name');
+  if(inp && t.placeholder) inp.placeholder = t.placeholder;
+  // ラベル類（結果表示中の固定ラベル）
+  document.querySelectorAll('[data-i18n-label="kana"]').forEach(el=>el.textContent=t.kana||'kana');
+  document.querySelectorAll('[data-i18n-label="romaji"]').forEach(el=>el.textContent=t.romaji||'romaji');
 
-function pickFromKana(kana, seedKey){
-  const r=rng(seedKey);
-  const chars=[];
-  for(const ch of kana){
-    const pool = sylPool[ch] || sylPool["ン"];
-    if(!pool) continue;
-    chars.push(pool[Math.floor(r()*pool.length)]);
-  }
-  // 2〜3字に整える（長すぎ抑制）
-  let out = chars.join("");
-  if(out.length>=4) out = out.slice(0,3);
-  if(out.length<=1 && chars.length>=2) out = chars.slice(0,2).join("");
-  return out || "雅";
+  const sel = document.getElementById('langSel'); if(sel) sel.value = lang;
+  localStorage.setItem('wamei_lang', lang);
 }
 
-/* =========================
-   4) 総合ジェネレーター
-========================= */
-function generate(nameRaw){
-  const key = (nameRaw||"").trim().toLowerCase();
-  if(!key) return null;
-
-  // 最優先：オーバーライド
-  if(overrides[key]){
-    const o=overrides[key];
-    return {kanji:o.kanji, kana:o.kana, romaji:key, meanings:o.meanings.map(m=>"• "+m)};
-  }
-
-  // 次：固定辞書
-  if(dict[key]){
-    const [kanji,kana,romaji,desc]=dict[key];
-    return {kanji,kana,romaji,meanings:desc.split("; ").map(s=>"• "+s)};
-  }
-
-  // 最後：発音ハイブリッド
-  const kana = /[ァ-ン]/.test(nameRaw) ? nameRaw : toKana(nameRaw);
-  const kanji = pickFromKana(kana.replace(/[^ァ-ン]/g,""), key);
-  // 簡単な意味（安全ポジティブのみ）
-  const meaningList = [...new Set(kanji.split("").map(ch=>{
-    const m = ({
-      "真":"true","行":"journey","愛":"love","和":"harmony","夢":"dream","健":"health",
-      "輝":"shine","咲":"bloom","良":"good","連":"connect","恵":"blessing","栄":"glory",
-      "礼":"courtesy","翼":"wing","翔":"soar","光":"light","音":"sound","智":"wisdom",
-      "海":"sea","華":"splendor","麗":"grace","流":"flow","陽":"sunny","宝":"treasure"
-    })[ch];
-    return m ? `${ch} = ${m}` : null;
-  }).filter(Boolean))];
-  return {kanji, kana, romaji:key, meanings: meaningList.length? meaningList.map(m=>"• "+m) : ["• Positive meanings will grow over time."]};
-}
-
-/* =========================
-   5) UI
-========================= */
-const $=s=>document.querySelector(s);
-const nameEl=$("#name"), res=$("#result");
-const outK=$("#outKanji"), outKa=$("#outKana"), outRo=$("#outRomaji"), outMe=$("#outMean");
-
-function show(data){
-  if(!data){ res.style.display="none"; return;}
-  outK.textContent=data.kanji;
-  outKa.textContent="kana: "+(data.kana||"—");
-  outRo.textContent="romaji: "+(data.romaji||"—");
-  outMe.innerHTML=data.meanings.join("<br>");
-  res.style.display="";
-}
-$("#btn").onclick=()=>show(generate(nameEl.value));
-document.addEventListener("click",e=>{
-  const ex=e.target.closest("[data-ex]"); if(ex){nameEl.value=ex.dataset.ex; $("#btn").click();}
-  if(e.target.id==="copy"){ navigator.clipboard.writeText(outK.textContent); e.target.textContent="✅ Copied"; setTimeout(()=>e.target.textContent="📋 コピー",1200);}
-  if(e.target.id==="share" && navigator.share){
-    navigator.share({title:"WAMEI", text:`${outK.textContent} (${outKa.textContent})`}).catch(()=>{});
-  }
+/* ====== 4) 初期化 & 変更イベント ====== */
+const currentLang = detectLang();
+document.addEventListener('DOMContentLoaded', ()=>{
+  applyLang(currentLang);
+  const sel = document.getElementById('langSel');
+  if(sel) sel.addEventListener('change', e=>{
+    const lang = e.target.value;
+    // /en などのURLでも動くよう、クエリを付与して履歴に残す（任意）
+    const u = new URL(location.href); u.searchParams.set('lang', lang);
+    history.replaceState(null,'',u);
+    applyLang(lang);
+  });
 });
-nameEl.addEventListener("keydown",e=>{if(e.key==="Enter") $("#btn").click();});
 </script>
-</body>
-</html>
