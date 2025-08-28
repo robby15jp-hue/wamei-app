@@ -1,104 +1,121 @@
-<!-- ▼ Language switcher（ヘッダーのどこかに置く） -->
-<div class="language-switcher" style="position:absolute;right:16px;top:16px;">
-  <select id="langSel" style="padding:8px 10px;border-radius:10px;">
-    <option value="en">English</option>
-    <option value="ja">日本語</option>
-    <option value="zh">中文</option>
-    <option value="ko">한국어</option>
-    <option value="fr">Français</option>
-    <option value="de">Deutsch</option>
-  </select>
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WAMEI Converter (Lite)</title>
+<style>
+  :root{--bg:#111827;--card:#1f2937;--text:#e5e7eb;--muted:#9ca3af;--p:#7c3aed}
+  *{box-sizing:border-box;margin:0;padding:0} body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);padding:16px}
+  .app{max-width:720px;margin:0 auto}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .card{background:var(--card);border:1px solid #374151;border-radius:12px;padding:16px;margin:12px 0}
+  h1{font-size:20px;margin-bottom:6px} .sub{color:var(--muted);font-size:14px}
+  .lang{margin-top:8px} select{background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:8px;padding:6px 8px}
+  input{flex:1;min-width:220px;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:10px;padding:12px 14px}
+  button{background:var(--p);color:#fff;border:none;border-radius:10px;padding:12px 16px;font-weight:700}
+  .kanji{font-size:64px;font-weight:900;letter-spacing:.06em}
+  .pill{display:inline-block;background:#111827;border:1px solid #374151;border-radius:999px;padding:6px 10px;font-size:12px;margin-right:6px;margin-top:6px}
+  .list{margin-top:10px} .muted{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+    <h1 id="t-title">和名変換（WAMEI Converter）</h1>
+    <div class="sub" id="t-sub">英字/カナ入力OK。日本人が読める当て字と良い意味を返します。</div>
+    <div class="lang"><label><select id="langSel"><option value="ja">日本語</option><option value="en">English</option></select></label></div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <input id="name" placeholder="Mike, Karen, David, Tom…">
+      <button id="genBtn">生成</button>
+    </div>
+    <div class="muted" id="t-note">辞書優先 → 発音ハイブリッド。同名は常に同じ結果（決定的）。</div>
+  </div>
+
+  <div class="card" id="result" style="display:none">
+    <div class="kanji" id="kanji">—</div>
+    <div style="margin-top:6px">
+      <span class="pill">kana: <span id="kana">—</span></span>
+      <span class="pill">romaji: <span id="romaji">—</span></span>
+    </div>
+    <div class="list">
+      <div style="font-weight:700" id="t-meanings">漢字の意味</div>
+      <div id="meanings" class="muted" style="margin-top:4px"></div>
+    </div>
+    <div style="margin-top:8px" class="row">
+      <button id="copyBtn">コピー</button>
+      <button id="shareBtn">共有</button>
+    </div>
+  </div>
 </div>
 
 <script>
-/* ====== 1) 翻訳辞書（必要に応じて増やす） ====== */
-const I18N = {
-  en: {
-    title: "Wamei — Kanji Atoji Maker",
-    subtitle: "Enter a name (Latin or Katakana). We return readable kanji with positive meanings.",
-    placeholder: "Enter your name (e.g., Mike, Karen, David, Tom…)",
-    gen: "Generate",
-    kana: "kana",
-    romaji: "romaji",
-    meanings: "Kanji meanings",
-    copy: "Copy",
-    share: "Share",
-    note: "Dictionary-first → hybrid phonetics. Same name → same result."
-  },
-  ja: {
-    title: "和名変換（WAMEI Converter）",
-    subtitle: "英字/カナ入力OK。日本人が読める当て字と良い意味を返します。",
-    placeholder: "名前を入力（例：Mike, Karen, David, Tom…）",
-    gen: "✨ 変換する",
-    kana: "kana",
-    romaji: "romaji",
-    meanings: "漢字の意味",
-    copy: "コピー",
-    share: "共有",
-    note: "辞書優先 → 発音ハイブリッド。同名は常に同じ結果。"
-  },
-  zh: { title:"和名转换", subtitle:"输入姓名（拉丁或片假名），返回可读汉字与积极含义。",
-        placeholder:"输入姓名（如：Mike, Karen…）", gen:"生成", kana:"读音", romaji:"罗马字",
-        meanings:"汉字含义", copy:"复制", share:"分享", note:"词典优先 → 发音混合。同名同结果。" },
-  ko: { title:"일본식 이름 변환", subtitle:"영문/가타카나 입력 OK. 읽기 쉬운 한자와 좋은 뜻을 반환.",
-        placeholder:"이름 입력 (예: Mike, Karen…)", gen:"생성", kana:"kana", romaji:"romaji",
-        meanings:"한자의 의미", copy:"복사", share:"공유", note:"사전 우선 → 발음 하이브리드. 동일 이름 동일 결과." },
-  fr: { title:"Convertisseur de nom japonais", subtitle:"Saisissez un nom. Kanji lisibles + sens positifs.",
-        placeholder:"Entrez un nom (ex : Mike, Karen…)", gen:"Générer", kana:"kana",
-        romaji:"romaji", meanings:"Sens des kanji", copy:"Copier", share:"Partager",
-        note:"Dictionnaire d'abord → phonétique hybride. Même nom → même résultat." },
-  de: { title:"Japanischer Namens-Konverter", subtitle:"Name eingeben. Lesbare Kanji mit positiver Bedeutung.",
-        placeholder:"Name eingeben (z. B. Mike, Karen…)", gen:"Generieren", kana:"Kana",
-        romaji:"Romaji", meanings:"Kanji-Bedeutungen", copy:"Kopieren", share:"Teilen",
-        note:"Wörterbuch zuerst → Hybrid-Aussprache. Gleicher Name → gleiches Ergebnis." }
+/*** 最小 i18n ***/
+const I18N={
+ ja:{title:"和名変換（WAMEI Converter）",sub:"英字/カナ入力OK。日本人が読める当て字と良い意味を返します。",note:"辞書優先 → 発音ハイブリッド。同名は常に同じ結果（決定的）。",ph:"名前を入力（例：Mike, Karen, David, Tom…）",gen:"生成",mean:"漢字の意味",copied:"コピーしました"},
+ en:{title:"Wamei — Kanji Atoji Maker",sub:"Type a name (Latin/Katakana). Readable kanji with positive meanings.",note:"Dictionary-first → hybrid phonetics. Same name → same result.",ph:"Enter a name (e.g., Mike, Karen, David, Tom…)",gen:"Generate",mean:"Kanji meanings",copied:"Copied!"}
 };
+function setLang(l){const t=I18N[l];document.documentElement.lang=l;
+  document.getElementById('t-title').textContent=t.title;
+  document.getElementById('t-sub').textContent=t.sub;
+  document.getElementById('t-note').textContent=t.note;
+  document.getElementById('name').placeholder=t.ph;
+  document.getElementById('genBtn').textContent=t.gen;
+  document.getElementById('t-meanings').textContent=t.mean;
+  localStorage.setItem('wamei_lang',l);
+}
+const initLang=(localStorage.getItem('wamei_lang')||((navigator.language||'en').slice(0,2) in I18N?(navigator.language||'en').slice(0,2):'en'));
+document.getElementById('langSel').value=initLang; setLang(initLang);
+document.getElementById('langSel').addEventListener('change',e=>setLang(e.target.value));
 
-/* ====== 2) 自動判定（URL > ローカル保存 > ブラウザ言語） ====== */
-function detectLang(){
-  // /en や ?lang=en に対応
-  const pathLang = location.pathname.split('/').filter(Boolean)[0];
-  const urlLang  = new URLSearchParams(location.search).get('lang');
-  const saved    = localStorage.getItem('wamei_lang');
-  const navLang  = (navigator.language||'en').slice(0,2);
-  const cand = (urlLang || pathLang || saved || navLang || 'en').toLowerCase();
-  return I18N[cand] ? cand : 'en';
+/*** 辞書（軽量）+ 文字意味 ***/
+const nameDict={
+ "mike":{kanji:"真行",kana:"マイク",romaji:"maiku",meanings:["truth","to advance"]},
+ "tom":{kanji:"登夢",kana:"トム",romaji:"tomu",meanings:["rise","dream"]},
+ "thomas":{kanji:"登真志",kana:"トーマス",romaji:"toomasu",meanings:["rise","truth","will"]},
+ "ken":{kanji:"健",kana:"ケン",romaji:"ken",meanings:["healthy"]},
+ "kevin":{kanji:"恵美仁",kana:"ケビン",romaji:"kebin",meanings:["blessing","beauty","benevolent"]},
+ "karen":{kanji:"香玲",kana:"カレン",romaji:"karen",meanings:["fragrance","jade chime"]},
+ "david":{kanji:"大飛斗",kana:"デイビッド",romaji:"deibiddo",meanings:["great","fly","star"]},
+ "michael":{kanji:"美嘉瑛",kana:"マイケル",romaji:"maikeru",meanings:["beauty","excellent","brilliant"]},
+ "john":{kanji:"城安",kana:"ジョン",romaji:"jon",meanings:["castle","peace"]},
+ "sarah":{kanji:"咲良",kana:"サラ",romaji:"sara",meanings:["bloom","good"]}
+};
+const charMeaning={"真":"truth","行":"advance","登":"rise","夢":"dream","健":"healthy","恵":"blessing","美":"beauty","仁":"benevolent","香":"fragrance","玲":"tinkling-jade","大":"great","飛":"fly","斗":"star","城":"castle","安":"peace","咲":"bloom","良":"good","嘉":"excellent","瑛":"brilliant"};
+
+/*** 発音ハイブリッド（極小・必ず生成） ***/
+const map={a:["愛","亜"],i:["伊","以"],u:["宇"],e:["恵","栄"],o:["央","桜"],ka:["香","佳"],ke:["恵","景"],ki:["輝","希"],ku:["空","久"],ko:["晃","幸"],ta:["太"],te:["天"],to:["登","斗"],na:["奈"],ma:["真","舞"],mi:["美"],mu:["夢"],me:["明"],mo:["望"],ra:["良","来"],ri:["理","莉"],ru:["瑠","流"],re:["玲","礼"],ro:["朗"],sa:["咲","沙"],shi:["志","詩"],su:["寿"],se:["清"],so:["蒼"],ya:["也"],yu:["優"],yo:["陽"]};
+const keys=Object.keys(map).sort((a,b)=>b.length-a.length);
+function norm(s){let r=s.toLowerCase().replace(/[^a-z]/g,"");r=r.replace(/ph/g,"f").replace(/qu/g,"ku").replace(/v/g,"b").replace(/x/g,"ks").replace(/th/g,"t");r=r.replace(/c(?=[eiy])/g,"s").replace(/c/g,"k");if(/[bcdfghjklmnpqrstvwxyz]$/.test(r)&&!/n$/.test(r))r+="u";return r;}
+function seg(r){const out=[];for(let i=0;i<r.length;){let hit=null;for(const k of keys){if(r.startsWith(k,i)){hit=k;break}}if(hit){out.push(hit);i+=hit.length}else{out.push(r[i]);i++}}return out}
+function h32(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function pick(arr,seed,i){return arr[(seed+i)%arr.length]}
+function toKana(r){let s=r; s=s.replace(/shi/g,"シ").replace(/chi/g,"チ").replace(/tsu/g,"ツ"); s=s.replace(/([kstnhmyrwgzdbp])([aeiou])/g,(m,c,v)=>({k:"カ",s:"サ",t:"タ",n:"ナ",h:"ハ",m:"マ",y:"ヤ",r:"ラ",w:"ワ",g:"ガ",z:"ザ",d:"ダ",b:"バ",p:"パ"}[c]+{a:"ア",i:"イ",u:"ウ",e:"エ",o:"オ"}[v])); s=s.replace(/[aeiou]/g,(v)=>({a:"ア",i:"イ",u:"ウ",e:"エ",o:"オ"}[v])); s=s.replace(/n(?![aeiouy])/g,"ン"); return s;}
+function makeHybrid(name){
+  const r=norm(name), seed=h32(r), sg=seg(r);
+  const chosen=[]; let i=0; for(const s of sg){ if(map[s]) chosen.push(pick(map[s],seed,i++)); }
+  if(!chosen.length) chosen.push("和","明"); if(chosen.length===1) chosen.push("明"); if(chosen.length>4) chosen.splice(4);
+  return {kanji:chosen.join(""), romaji:r, kana:toKana(r)};
 }
 
-/* ====== 3) 適用（data-i18n 属性に流し込む） ====== */
-function applyLang(lang){
-  const t = I18N[lang]; if(!t) return;
-  document.documentElement.setAttribute('lang', lang);
-  // テキスト
-  const set = (sel, key)=>{ const el = document.querySelector(sel); if(el && t[key]) el.textContent = t[key]; };
-  set('[data-i18n=title]', 'title');
-  set('[data-i18n=subtitle]', 'subtitle');
-  set('[data-i18n=gen]', 'gen');
-  set('[data-i18n=meanings]', 'meanings');
-  set('[data-i18n=copy]', 'copy');
-  set('[data-i18n=share]', 'share');
-  set('[data-i18n=note]', 'note');
-  // プレースホルダ
-  const inp = document.querySelector('#name');
-  if(inp && t.placeholder) inp.placeholder = t.placeholder;
-  // ラベル類（結果表示中の固定ラベル）
-  document.querySelectorAll('[data-i18n-label="kana"]').forEach(el=>el.textContent=t.kana||'kana');
-  document.querySelectorAll('[data-i18n-label="romaji"]').forEach(el=>el.textContent=t.romaji||'romaji');
-
-  const sel = document.getElementById('langSel'); if(sel) sel.value = lang;
-  localStorage.setItem('wamei_lang', lang);
+/*** 生成 & UI ***/
+const $=id=>document.getElementById(id);
+function generate(v){
+  const key=v.trim().toLowerCase();
+  const out = nameDict[key] ? nameDict[key] : makeHybrid(v);
+  const ms = out.meanings ? out.meanings : [...out.kanji].map(c=>charMeaning[c]).filter(Boolean);
+  $('kanji').textContent = out.kanji;
+  $('kana').textContent  = out.kana || toKana(out.romaji||v);
+  $('romaji').textContent= out.romaji || norm(v);
+  $('meanings').innerHTML = (ms && ms.length)? ms.map(m=>"• "+m).join("<br>") : "(meaning will grow)";
+  $('result').style.display='block';
 }
-
-/* ====== 4) 初期化 & 変更イベント ====== */
-const currentLang = detectLang();
-document.addEventListener('DOMContentLoaded', ()=>{
-  applyLang(currentLang);
-  const sel = document.getElementById('langSel');
-  if(sel) sel.addEventListener('change', e=>{
-    const lang = e.target.value;
-    // /en などのURLでも動くよう、クエリを付与して履歴に残す（任意）
-    const u = new URL(location.href); u.searchParams.set('lang', lang);
-    history.replaceState(null,'',u);
-    applyLang(lang);
-  });
-});
+$('genBtn').addEventListener('click',()=>{const v=$('name').value.trim(); if(v) generate(v);});
+$('copyBtn').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('kanji').textContent);}catch(e){} alert(I18N[document.documentElement.lang].copied);});
+$('shareBtn').addEventListener('click',async()=>{const k=$('kanji').textContent; if(navigator.share){try{await navigator.share({text:k})}catch(e){}} else {try{await navigator.clipboard.writeText(k)}catch(e){} alert(I18N[document.documentElement.lang].copied);} });
 </script>
+</body>
+</html>
