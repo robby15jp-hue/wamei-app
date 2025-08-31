@@ -1,125 +1,165 @@
-<!-- 書道フォント -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
-
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WAMEI Converter (Lite)</title>
 <style>
-  .shodo-wrap{margin:16px auto;max-width:820px;padding:14px;border-radius:14px;
-    border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03)}
-  .shodo-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .shodo-btn{background:#7c5cff;color:#fff;border:0;border-radius:12px;padding:12px 16px;font-weight:700}
-  .shodo-ghost{background:#101633;color:#e8ecff;border:1px solid rgba(255,255,255,.15)}
-  .shodo-input{flex:1;min-width:180px;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.2);
-    background:rgba(255,255,255,.06);color:inherit}
-  #shodoCanvas{width:100%;max-width:820px;display:block;border-radius:12px;
-    border:1px solid rgba(255,255,255,.15);background:#f6f2e8}
-  .shodo-note{opacity:.7;font-size:12px;margin-top:6px}
+  :root{--bg:#111827;--card:#1f2937;--text:#e5e7eb;--muted:#9ca3af;--p:#7c3aed}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);padding:16px}
+  .app{max-width:720px;margin:0 auto}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .card{background:var(--card);border:1px solid #374151;border-radius:12px;padding:16px;margin:12px 0}
+  h1{font-size:20px;margin-bottom:6px}
+  .sub{color:var(--muted);font-size:14px}
+  .lang{margin-top:8px}
+  select{background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:8px;padding:6px 8px}
+  input{flex:1;min-width:220px;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:10px;padding:12px 14px}
+  button{background:var(--p);color:#fff;border:none;border-radius:10px;padding:12px 16px;font-weight:700}
+  .kanji{font-size:64px;font-weight:900;letter-spacing:.06em}
+  .pill{display:inline-block;background:#111827;border:1px solid #374151;border-radius:999px;padding:6px 10px;font-size:12px;margin-right:6px;margin-top:6px}
+  .list{margin-top:10px}
+  .muted{color:var(--muted);font-size:13px}
 </style>
-
-<div class="shodo-wrap">
-  <div class="shodo-row">
-    <!-- フォールバック用の手入力 -->
-    <input id="shodoManual" class="shodo-input" placeholder="描画したい漢字を手入力（拾えない時用）">
-    <button class="shodo-btn" id="shodoRender">🖌️ 書道風で表示</button>
-    <button class="shodo-btn shodo-ghost" id="shodoDownload">💾 画像を保存</button>
+</head>
+<body>
+<div class="app">
+  <!-- ヘッダー -->
+  <div class="card">
+    <h1 id="t-title">和名変換（WAMEI Converter）</h1>
+    <div class="sub" id="t-sub">英字/カナ入力OK。日本人が読める当て字と良い意味を返します。</div>
+    <div class="lang">
+      <label>
+        <select id="langSel">
+          <option value="ja">日本語</option>
+          <option value="en">English</option>
+          <option value="zh">中文</option>
+          <option value="ko">한국어</option>
+        </select>
+      </label>
+    </div>
   </div>
-  <div class="shodo-note">※ 現在の変換結果が見つかれば自動で描画／見つからない時は手入力して描画できます</div>
-  <canvas id="shodoCanvas" width="1200" height="1600"></canvas>
+
+  <!-- 入力 -->
+  <div class="card">
+    <div class="row">
+      <input id="name" placeholder="Mike, Karen, David, Tom…">
+      <button id="genBtn">生成</button>
+    </div>
+    <div class="muted" id="t-note">辞書優先 → 発音ハイブリッド。同名は常に同じ結果（決定的）。</div>
+  </div>
+
+  <!-- 結果 -->
+  <div class="card" id="result" style="display:none">
+    <div class="kanji" id="kanji">—</div>
+    <div style="margin-top:6px">
+      <span class="pill"><span id="t-kana">kana</span>: <span id="kana">—</span></span>
+      <span class="pill"><span id="t-romaji">romaji</span>: <span id="romaji">—</span></span>
+    </div>
+    <div class="list">
+      <div style="font-weight:700" id="t-meanings">漢字の意味</div>
+      <div id="meanings" class="muted" style="margin-top:4px"></div>
+    </div>
+    <div style="margin-top:8px" class="row">
+      <button id="copyBtn">コピー</button>
+      <button id="shareBtn">共有</button>
+    </div>
+  </div>
 </div>
 
 <script>
-/* ====== 書道レンダラ ====== */
-const SHODO = (() => {
-  const paper = (ctx,w,h) => {
-    ctx.fillStyle = '#f6f2e8'; ctx.fillRect(0,0,w,h);
-    for(let i=0;i<800;i++){
-      const x=Math.random()*w, y=Math.random()*h, a=Math.random()*0.08+0.02;
-      ctx.fillStyle=`rgba(120,110,90,${a})`;
-      ctx.fillRect(x,y, Math.random()*1.2+0.2, Math.random()*1.2+0.2);
-    }
-    const g=ctx.createLinearGradient(0,0,0,h);
-    g.addColorStop(0,'rgba(0,0,0,0.02)'); g.addColorStop(1,'rgba(0,0,0,0.05)');
-    ctx.globalCompositeOperation='multiply'; ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
-    ctx.globalCompositeOperation='source-over';
-  };
-  const fontReady = () => document.fonts ? document.fonts.ready : Promise.resolve();
-  const drawText = async (ctx,w,h,text) => {
-    await fontReady();
-    const margin=w*0.08, boxW=w-margin*2, boxH=h-margin*2;
-    const chars=[...text.trim()];
-    const maxCols = chars.length<=3 ? 1 : (chars.length<=6?2:3);
-    const rows = Math.ceil(chars.length/maxCols);
-    const colW=boxW/maxCols, rowH=boxH/rows;
-    const f=Math.min(colW,rowH)*0.9;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    const passes=10;
-    for(let p=0;p<passes;p++){
-      ctx.globalAlpha=(p+1)/passes;
-      ctx.filter=`blur(${(passes-p)*0.6}px)`;
-      ctx.font=`900 ${f}px "Yuji Syuku", serif`;
-      for(let i=0;i<chars.length;i++){
-        const c=chars[i], col=i%maxCols, row=Math.floor(i/maxCols);
-        const x=margin+col*colW+colW/2+(Math.random()-0.5)*2;
-        const y=margin+row*rowH+rowH/2+(Math.random()-0.5)*2;
-        ctx.fillStyle='#000'; ctx.fillText(c,x,y);
-      }
-    }
-    ctx.filter='none'; ctx.globalAlpha=1;
-    const hankoSize=Math.max(60, Math.min(w,h)*0.08);
-    ctx.fillStyle='#b81c2c'; ctx.globalAlpha=0.9;
-    ctx.fillRect(w-margin-hankoSize, h-margin-hankoSize, hankoSize, hankoSize);
-    ctx.globalAlpha=1; ctx.fillStyle='#f6f2e8';
-    ctx.font=`${hankoSize*0.5}px "Yuji Syuku", serif`;
-    ctx.fillText('和名', w-margin-hankoSize/2, h-margin-hankoSize/2+2);
-  };
-  const render = (text) => {
-    const cvs=document.getElementById('shodoCanvas'), ctx=cvs.getContext('2d');
-    paper(ctx,cvs.width,cvs.height);
-    if(text && /[\u4E00-\u9FFF]/.test(text)) drawText(ctx,cvs.width,cvs.height,text);
-  };
-  return { render };
-})();
+/* ========= 最小 i18n（ja / en / zh / ko） ========= */
+const I18N = {
+  ja:{title:"和名変換（WAMEI Converter）",sub:"英字/カナ入力OK。日本人が読める当て字と良い意味を返します。",note:"辞書優先 → 発音ハイブリッド。同名は常に同じ結果（決定的）。",ph:"名前を入力（例：Mike, Karen, David, Tom…）",gen:"生成",mean:"漢字の意味",copy:"コピー",share:"共有",copied:"コピーしました",kana:"kana",romaji:"romaji"},
+  en:{title:"Wamei — Kanji Atoji Maker",sub:"Enter a name (Latin or Katakana). Returns readable kanji with positive meanings.",note:"Dictionary-first → hybrid phonetics. Same name → same result (deterministic).",ph:"Enter a name (e.g., Mike, Karen, David, Tom…)",gen:"Generate",mean:"Kanji meanings",copy:"Copy",share:"Share",copied:"Copied!",kana:"kana",romaji:"romaji"},
+  zh:{title:"和名转换（WAMEI）",sub:"输入姓名（拉丁字母或片假名）。返回可读、寓意积极的汉字。",note:"词典优先 → 发音混合。同名始终返回相同结果。",ph:"输入姓名（例：Mike, Karen, David, Tom…）",gen:"生成",mean:"汉字含义",copy:"复制",share:"分享",copied:"已复制！",kana:"读音",romaji:"罗马字"},
+  ko:{title:"일본식 이름 변환 (WAMEI)",sub:"영문/가타카나 이름을 입력하면 읽기 쉬운 한자와 긍정적 의미를 제공합니다.",note:"사전 우선 → 발음 하이브리드. 같은 이름은 항상 같은 결과.",ph:"이름 입력 (예: Mike, Karen, David, Tom…)",gen:"생성",mean:"한자의 의미",copy:"복사",share:"공유",copied:"복사했습니다!",kana:"가나",romaji:"로마자"}
+};
+function detectLang(){
+  const url = new URLSearchParams(location.search).get('lang');
+  const saved = localStorage.getItem('wamei_lang');
+  const nav = (navigator.language||'en').slice(0,2);
+  const cand = (url||saved||nav||'en').toLowerCase();
+  return I18N[cand] ? cand : 'en';
+}
+function applyLang(l){
+  const t=I18N[l]; if(!t) return;
+  document.documentElement.lang=l;
+  document.getElementById('t-title').textContent=t.title;
+  document.getElementById('t-sub').textContent=t.sub;
+  document.getElementById('t-note').textContent=t.note;
+  document.getElementById('name').placeholder=t.ph;
+  document.getElementById('genBtn').textContent=t.gen;
+  document.getElementById('t-meanings').textContent=t.mean;
+  document.getElementById('copyBtn').textContent=t.copy;
+  document.getElementById('shareBtn').textContent=t.share;
+  document.getElementById('t-kana').textContent=t.kana;
+  document.getElementById('t-romaji').textContent=t.romaji;
+  document.getElementById('langSel').value=l;
+  localStorage.setItem('wamei_lang', l);
+}
+const LANG = detectLang(); applyLang(LANG);
+document.getElementById('langSel').addEventListener('change', e=>{
+  const lang = e.target.value; applyLang(lang);
+  const u=new URL(location.href); u.searchParams.set('lang', lang); history.replaceState(null,'',u);
+});
 
-/* ====== 文字取得：強化版 ====== */
-function findKanjiInDOM(){
-  // 1) よくあるID
-  const ids=['kanji','kanjiOutput','kanjiText','resultKanji','wamei','nameKanji'];
-  for(const id of ids){
-    const el=document.getElementById(id);
-    const t=el && el.textContent ? el.textContent.trim() : '';
-    if(/[\u4E00-\u9FFF]/.test(t)) return t;
-  }
-  // 2) CJKを含む要素を総当り（大きい＆太字っぽいものを優先）
-  const all = Array.from(document.querySelectorAll('div,span,h1,h2,h3,p'));
-  const cands = all.map(el=>{
-    const t=(el.textContent||'').trim();
-    const score =
-      (/[^\x00-\x7F]/.test(t)?1:0) * 10 +
-      (window.getComputedStyle(el).fontSize.replace('px','')|0) +
-      (el.clientWidth*el.clientHeight)/1000;
-    return {t,score};
-  }).filter(o=> /[\u4E00-\u9FFF]/.test(o.t) && o.t.length<=12);
-  if(cands.length){ cands.sort((a,b)=>b.score-a.score); return cands[0].t; }
-  return '';
+/* ========= 辞書（軽量） + 文字意味 ========= */
+const nameDict={
+ "mike":{kanji:"真行",kana:"マイク",romaji:"maiku",meanings:["truth","to advance"]},
+ "tom":{kanji:"登夢",kana:"トム",romaji:"tomu",meanings:["rise","dream"]},
+ "thomas":{kanji:"登真志",kana:"トーマス",romaji:"toomasu",meanings:["rise","truth","will"]},
+ "ken":{kanji:"健",kana:"ケン",romaji:"ken",meanings:["healthy"]},
+ "kevin":{kanji:"恵美仁",kana:"ケビン",romaji:"kebin",meanings:["blessing","beauty","benevolent"]},
+ "karen":{kanji:"香玲",kana:"カレン",romaji:"karen",meanings:["fragrance","jade chime"]},
+ "david":{kanji:"出威美都",kana:"デイヴィッド",romaji:"deibiddo",meanings:["to step out","dignity","beauty","capital"]},
+ "john":{kanji:"城安",kana:"ジョン",romaji:"jon",meanings:["castle","peace"]},
+ "sarah":{kanji:"咲良",kana:"サラ",romaji:"sara",meanings:["bloom","good"]}
+};
+const charMeaning={"真":"truth","行":"advance","登":"rise","夢":"dream","健":"healthy","恵":"blessing","美":"beauty","仁":"benevolent","香":"fragrance","玲":"tinkling-jade","出":"to step out","威":"dignity","都":"capital","城":"castle","安":"peace","咲":"bloom","良":"good","嘉":"excellent","瑛":"brilliant"};
+
+/* ========= 発音ハイブリッド（極小・必ず生成） ========= */
+const map={a:["愛","亜"],i:["伊","以"],u:["宇"],e:["恵","栄"],o:["央","桜"],ka:["香","佳"],ke:["恵","景"],ki:["輝","希"],ku:["空","久"],ko:["晃","幸"],ta:["太"],te:["天"],to:["登","斗"],na:["奈"],ma:["真","舞"],mi:["美"],mu:["夢"],me:["明"],mo:["望"],ra:["良","来"],ri:["理","莉"],ru:["瑠","流"],re:["玲","礼"],ro:["朗"],sa:["咲","沙"],shi:["志","詩"],su:["寿"],se:["清"],so:["蒼"],ya:["也"],yu:["優"],yo:["陽"]};
+const keys=Object.keys(map).sort((a,b)=>b.length-a.length);
+function norm(s){let r=s.toLowerCase().replace(/[^a-z]/g,"");r=r.replace(/ph/g,"f").replace(/qu/g,"ku").replace(/v/g,"b").replace(/x/g,"ks").replace(/th/g,"t");r=r.replace(/c(?=[eiy])/g,"s").replace(/c/g,"k");if(/[bcdfghjklmnpqrstvwxyz]$/.test(r)&&!/n$/.test(r))r+="u";return r;}
+function seg(r){const out=[];for(let i=0;i<r.length;){let hit=null;for(const k of keys){if(r.startsWith(k,i)){hit=k;break}}if(hit){out.push(hit);i+=hit.length}else{out.push(r[i]);i++}}return out}
+function h32(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function pick(arr,seed,i){return arr[(seed+i)%arr.length]}
+function toKana(r){let s=r; s=s.replace(/shi/g,"シ").replace(/chi/g,"チ").replace(/tsu/g,"ツ"); s=s.replace(/([kstnhmyrwgzdbp])([aeiou])/g,(m,c,v)=>({k:"カ",s:"サ",t:"タ",n:"ナ",h:"ハ",m:"マ",y:"ヤ",r:"ラ",w:"ワ",g:"ガ",z:"ザ",d:"ダ",b:"バ",p:"パ"}[c]+{a:"ア",i:"イ",u:"ウ",e:"エ",o:"オ"}[v])); s=s.replace(/[aeiou]/g,(v)=>({a:"ア",i:"イ",u:"ウ",e:"エ",o:"オ"}[v])); s=s.replace(/n(?![aeiouy])/g,"ン"); return s;}
+function makeHybrid(name){
+  const r=norm(name), seed=h32(r), sg=seg(r);
+  const chosen=[]; let i=0; for(const s of sg){ if(map[s]) chosen.push(pick(map[s],seed,i++)); }
+  if(!chosen.length) chosen.push("和","明"); if(chosen.length===1) chosen.push("明"); if(chosen.length>4) chosen.splice(4);
+  return {kanji:chosen.join(""), romaji:r, kana:toKana(r)};
 }
 
-/* ====== 外部からも呼べるAPI ====== */
-window.SHODO_RENDER = (text) => {
-  SHODO.render(text || findKanjiInDOM() || document.getElementById('shodoManual').value.trim());
-};
-
-/* ====== ボタン動作・初期化 ====== */
-document.getElementById('shodoRender').addEventListener('click', ()=>{
-  window.SHODO_RENDER();
+/* ========= 生成 & UI ========= */
+const $=id=>document.getElementById(id);
+function generate(v){
+  const lang=document.documentElement.lang||'en', t=I18N[lang];
+  const key=v.trim().toLowerCase();
+  const out = nameDict[key] ? nameDict[key] : makeHybrid(v);
+  const ms = out.meanings ? out.meanings : [...out.kanji].map(c=>charMeaning[c]).filter(Boolean);
+  $('kanji').textContent = out.kanji;
+  $('kana').textContent  = out.kana || toKana(out.romaji||v);
+  $('romaji').textContent= out.romaji || norm(v);
+  $('meanings').innerHTML = (ms && ms.length)? ms.map(m=>"• "+m).join("<br>") : (t.mean==="Kanji meanings"?"(meanings will grow)":"（意味は順次追加）");
+  $('result').style.display='block';
+}
+$('genBtn').addEventListener('click',()=>{const v=$('name').value.trim(); if(v) generate(v);});
+$('name').addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ const v=$('name').value.trim(); if(v) generate(v); }});
+$('copyBtn').addEventListener('click',async()=>{
+  const t=I18N[document.documentElement.lang].copied;
+  try{await navigator.clipboard.writeText($('kanji').textContent);}catch(e){} alert(t);
 });
-document.getElementById('shodoDownload').addEventListener('click', ()=>{
-  const cvs=document.getElementById('shodoCanvas');
-  const a=document.createElement('a'); a.href=cvs.toDataURL('image/png'); a.download='wamei-shodo.png'; a.click();
+$('shareBtn').addEventListener('click',async()=>{
+  const k=$('kanji').textContent; const t=I18N[document.documentElement.lang].copied;
+  if(navigator.share){try{await navigator.share({text:k})}catch(e){}} else {try{await navigator.clipboard.writeText(k)}catch(e){} alert(t);}
 });
-// 初期は半紙のみ
-SHODO.render('');
 
-// 変換結果の出現を監視して自動描画（ページ側の更新に追従）
-const obs=new MutationObserver(()=>{ const k=findKanjiInDOM(); if(k) SHODO.render(k); });
-obs.observe(document.body,{childList:true,subtree:true,characterData:true});
+/* 初期適用 */
+document.getElementById('name').placeholder = I18N[LANG].ph;
 </script>
+</body>
+</html>
