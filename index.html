@@ -16,7 +16,7 @@
   .lang{margin-top:8px}
   select{background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:8px;padding:6px 8px}
   input{flex:1;min-width:220px;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:10px;padding:12px 14px}
-  button{background:var(--p);color:#fff;border:none;border-radius:10px;padding:12px 16px;font-weight:700}
+  button{background:var(--p);color:#fff;border:none;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer}
   .kanji{font-size:64px;font-weight:900;letter-spacing:.06em}
   .pill{display:inline-block;background:#111827;border:1px solid #374151;border-radius:999px;padding:6px 10px;font-size:12px;margin-right:6px;margin-top:6px}
   .list{margin-top:10px}
@@ -105,32 +105,112 @@ document.getElementById('langSel').addEventListener('change', e=>{
   const u=new URL(location.href); u.searchParams.set('lang', lang); history.replaceState(null,'',u);
 });
 
-/* ========= 辞書（軽量） + 文字意味 ========= */
-const nameDict={
- "mike":{kanji:"真行",kana:"マイク",romaji:"maiku",meanings:["truth","to advance"]},
- "tom":{kanji:"登夢",kana:"トム",romaji:"tomu",meanings:["rise","dream"]},
- "thomas":{kanji:"登真志",kana:"トーマス",romaji:"toomasu",meanings:["rise","truth","will"]},
- "ken":{kanji:"健",kana:"ケン",romaji:"ken",meanings:["healthy"]},
- "kevin":{kanji:"恵美仁",kana:"ケビン",romaji:"kebin",meanings:["blessing","beauty","benevolent"]},
- "karen":{kanji:"香玲",kana:"カレン",romaji:"karen",meanings:["fragrance","jade chime"]},
- "david":{kanji:"出威美都",kana:"デイヴィッド",romaji:"deibiddo",meanings:["to step out","dignity","beauty","capital"]},
- "john":{kanji:"城安",kana:"ジョン",romaji:"jon",meanings:["castle","peace"]},
- "sarah":{kanji:"咲良",kana:"サラ",romaji:"sara",meanings:["bloom","good"]}
+/* ========= 辞書（最優先オーバーライド） + 文字意味 ========= */
+const nameDict = {
+  // 既存
+  "mike":   {kanji:"真行",    kana:"マイク",       romaji:"maiku",     meanings:["truth","to advance"]},
+  "tom":    {kanji:"登夢",    kana:"トム",         romaji:"tomu",      meanings:["rise","dream"]},
+  "thomas": {kanji:"登真志",  kana:"トーマス",     romaji:"toomasu",   meanings:["rise","truth","will"]},
+  "ken":    {kanji:"健",      kana:"ケン",         romaji:"ken",       meanings:["healthy"]},
+  "kevin":  {kanji:"恵美仁",  kana:"ケビン",       romaji:"kebin",     meanings:["blessing","beauty","benevolent"]},
+  // ご指定どおり
+  "karen":  {kanji:"薫連",    kana:"カレン",       romaji:"karen",     meanings:["fragrant","connected"]},
+  "david":  {kanji:"出威美都",kana:"デイヴィッド", romaji:"deibiddo",  meanings:["to step out","dignity","beauty","capital"]},
+  "john":   {kanji:"城安",    kana:"ジョン",       romaji:"jon",       meanings:["castle","peace"]},
+  "sarah":  {kanji:"咲良",    kana:"サラ",         romaji:"sara",      meanings:["bloom","good"]},
+  "james":  {kanji:"自栄夢寿",kana:"ジェームズ",   romaji:"james",     meanings:["identity","glory","dream","longevity"]},
+  "olivia": {kanji:"織美愛",  kana:"オリビア",     romaji:"olivia",    meanings:["weave/create","beauty","love"]},
+  "sophia": {kanji:"染不意愛",kana:"ソフィア",     romaji:"sophia",    meanings:["imbue","steadfast","intent","love"]},
+  "arthur": {kanji:"愛栄",    kana:"アーサー",     romaji:"arthur",    meanings:["love","honor/glory"]},
+  "asher":  {kanji:"愛至屋",  kana:"アッシャー",   romaji:"asher",     meanings:["love","attain","home/place"]},
+  "milo":   {kanji:"舞路",    kana:"マイロ",       romaji:"mairo",     meanings:["dance","path"]}
 };
-const charMeaning={"真":"truth","行":"advance","登":"rise","夢":"dream","健":"healthy","恵":"blessing","美":"beauty","仁":"benevolent","香":"fragrance","玲":"tinkling-jade","出":"to step out","威":"dignity","都":"capital","城":"castle","安":"peace","咲":"bloom","良":"good","嘉":"excellent","瑛":"brilliant"};
+// 画面に出す時の意味補完（辞書に meanings が無い漢字分）
+const charMeaning = {
+  "真":"truth","行":"advance","登":"rise","夢":"dream","健":"healthy","恵":"blessing","美":"beauty","仁":"benevolent",
+  "香":"fragrance","玲":"tinkling-jade","出":"to step out","威":"dignity","都":"capital","城":"castle","安":"peace",
+  "咲":"bloom","良":"good","嘉":"excellent","瑛":"brilliant",
+  "自":"self/identity","栄":"glory","寿":"longevity","織":"weave/create","愛":"love","染":"imbue","不":"steadfast",
+  "意":"intent","至":"attain","屋":"home/place","舞":"dance","路":"path","薫":"fragrant","連":"connected"
+};
 
-/* ========= 発音ハイブリッド（極小・必ず生成） ========= */
-const map={a:["愛","亜"],i:["伊","以"],u:["宇"],e:["恵","栄"],o:["央","桜"],ka:["香","佳"],ke:["恵","景"],ki:["輝","希"],ku:["空","久"],ko:["晃","幸"],ta:["太"],te:["天"],to:["登","斗"],na:["奈"],ma:["真","舞"],mi:["美"],mu:["夢"],me:["明"],mo:["望"],ra:["良","来"],ri:["理","莉"],ru:["瑠","流"],re:["玲","礼"],ro:["朗"],sa:["咲","沙"],shi:["志","詩"],su:["寿"],se:["清"],so:["蒼"],ya:["也"],yu:["優"],yo:["陽"]};
-const keys=Object.keys(map).sort((a,b)=>b.length-a.length);
-function norm(s){let r=s.toLowerCase().replace(/[^a-z]/g,"");r=r.replace(/ph/g,"f").replace(/qu/g,"ku").replace(/v/g,"b").replace(/x/g,"ks").replace(/th/g,"t");r=r.replace(/c(?=[eiy])/g,"s").replace(/c/g,"k");if(/[bcdfghjklmnpqrstvwxyz]$/.test(r)&&!/n$/.test(r))r+="u";return r;}
+/* ========= 発音ハイブリッド（辞書に無い名の保険） ========= */
+const map = {
+  a:["愛","亜"], i:["伊","以"], u:["宇"], e:["恵","栄"], o:["央","桜"],
+  ka:["香","佳"], ke:["恵","景"], ki:["輝","希"], ku:["空","久"], ko:["晃","幸"],
+  ta:["太"], te:["天"], to:["登","斗"],
+  na:["奈"], ma:["真","舞"], mi:["美"], mu:["夢"], me:["明"], mo:["望"],
+  ra:["良","来"], ri:["理","莉"], ru:["瑠","流"], re:["玲","礼"], ro:["朗"],
+  sa:["咲","沙"], shi:["志","詩"], su:["寿"], se:["清"], so:["蒼"],
+  // 追加：sh 系（Sasha / Asher / Sophia 等）
+  sha:["紗","祥"], shu:["秀","修"], sho:["翔","晶"], she:["栞","絢"],
+  // y 系
+  ya:["也"], yu:["優"], yo:["陽"]
+};
+const keys = Object.keys(map).sort((a,b)=>b.length-a.length);
+
+/* 正規化 */
+function norm(s){
+  let r=s.toLowerCase().replace(/[^a-z]/g,"");
+  r=r.replace(/ph/g,"f").replace(/qu/g,"ku").replace(/v/g,"b").replace(/x/g,"ks").replace(/th/g,"t");
+  r=r.replace(/c(?=[eiy])/g,"s").replace(/c/g,"k");
+  if(/[bcdfghjklmnpqrstvwxyz]$/.test(r)&&!/n$/.test(r)) r+="u";
+  return r;
+}
+
+/* カナ化（強化版） */
+function toKana(r){
+  let s=r.toLowerCase();
+  // 正規化
+  s=s.replace(/ph/g,'f').replace(/qu/g,'ku').replace(/v/g,'b').replace(/x/g,'ks').replace(/th/g,'t');
+  s=s.replace(/c(?=[eiy])/g,'s').replace(/c/g,'k');
+  // 促音マーカー
+  s=s.replace(/([bcdfghjklmnpqrstvwxyz])\1/g,'$1'); // 重複削減
+  s=s.replace(/([^aeiou])(?=[bcdfghjklmnpqrstvwxyz])/g,'$1\u0001');
+
+  // 複合音（長い順）
+  const pairs=[
+    ['she','シェ'],['che','チェ'],['je','ジェ'],
+    ['sha','シャ'],['shu','シュ'],['sho','ショ'],
+    ['cha','チャ'],['chu','チュ'],['cho','チョ'],
+    ['ja','ジャ'], ['ju','ジュ'], ['jo','ジョ'],
+    ['shi','シ'],  ['chi','チ'],  ['tsu','ツ']
+  ];
+  for(const [a,b] of pairs){ s=s.replaceAll(a,b); }
+
+  // 子音+母音
+  s=s.replace(/([kgstnhmyrwbzpdfj])([aeiou])/g,(m,c,v)=>{
+    const C={k:'カ',g:'ガ',s:'サ',z:'ザ',t:'タ',d:'ダ',n:'ナ',h:'ハ',b:'バ',p:'パ',
+             m:'マ',y:'ヤ',r:'ラ',w:'ワ',f:'ファ',j:'ジャ'};
+    const V={a:'ア',i:'イ',u:'ウ',e:'エ',o:'オ'};
+    return (C[c]||'')+(V[v]||'');
+  });
+  // 単独母音
+  s=s.replace(/[aeiou]/g,v=>({a:'ア',i:'イ',u:'ウ',e:'エ',o:'オ'}[v]));
+  // ン
+  s=s.replace(/n(?![aiueoy])/g,'ン');
+  // 促音
+  s=s.replace(/\u0001/g,'ッ');
+  // 語尾 -er を長音に（Asherなど）
+  s=s.replace(/ー?er$/,'アー');
+
+  return s;
+}
+
+/* セグメント */
 function seg(r){const out=[];for(let i=0;i<r.length;){let hit=null;for(const k of keys){if(r.startsWith(k,i)){hit=k;break}}if(hit){out.push(hit);i+=hit.length}else{out.push(r[i]);i++}}return out}
+
+/* 乱択（決定的に） */
 function h32(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function pick(arr,seed,i){return arr[(seed+i)%arr.length]}
-function toKana(r){let s=r; s=s.replace(/shi/g,"シ").replace(/chi/g,"チ").replace(/tsu/g,"ツ"); s=s.replace(/([kstnhmyrwgzdbp])([aeiou])/g,(m,c,v)=>({k:"カ",s:"サ",t:"タ",n:"ナ",h:"ハ",m:"マ",y:"ヤ",r:"ラ",w:"ワ",g:"ガ",z:"ザ",d:"ダ",b:"バ",p:"パ"}[c]+{a:"ア",i:"イ",u:"ウ",e:"エ",o:"オ"}[v])); s=s.replace(/[aeiou]/g,(v)=>({a:"ア",i:"イ",u:"ウ",e:"エ",o:"オ"}[v])); s=s.replace(/n(?![aeiouy])/g,"ン"); return s;}
+
+/* フォールバック生成（辞書に無い時） */
 function makeHybrid(name){
   const r=norm(name), seed=h32(r), sg=seg(r);
   const chosen=[]; let i=0; for(const s of sg){ if(map[s]) chosen.push(pick(map[s],seed,i++)); }
-  if(!chosen.length) chosen.push("和","明"); if(chosen.length===1) chosen.push("明"); if(chosen.length>4) chosen.splice(4);
+  if(!chosen.length) chosen.push("和","明");
+  if(chosen.length===1) chosen.push("明");
+  if(chosen.length>4) chosen.splice(4);
   return {kanji:chosen.join(""), romaji:r, kana:toKana(r)};
 }
 
@@ -147,6 +227,7 @@ function generate(v){
   $('meanings').innerHTML = (ms && ms.length)? ms.map(m=>"• "+m).join("<br>") : (t.mean==="Kanji meanings"?"(meanings will grow)":"（意味は順次追加）");
   $('result').style.display='block';
 }
+
 $('genBtn').addEventListener('click',()=>{const v=$('name').value.trim(); if(v) generate(v);});
 $('name').addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ const v=$('name').value.trim(); if(v) generate(v); }});
 $('copyBtn').addEventListener('click',async()=>{
