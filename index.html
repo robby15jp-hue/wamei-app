@@ -1,246 +1,89 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WAMEI Converter (Lite)</title>
-<style>
-  :root{--bg:#111827;--card:#1f2937;--text:#e5e7eb;--muted:#9ca3af;--p:#7c3aed}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);padding:16px}
-  .app{max-width:720px;margin:0 auto}
-  .row{display:flex;gap:8px;flex-wrap:wrap}
-  .card{background:var(--card);border:1px solid #374151;border-radius:12px;padding:16px;margin:12px 0}
-  h1{font-size:20px;margin-bottom:6px}
-  .sub{color:var(--muted);font-size:14px}
-  .lang{margin-top:8px}
-  select{background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:8px;padding:6px 8px}
-  input{flex:1;min-width:220px;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:10px;padding:12px 14px}
-  button{background:var(--p);color:#fff;border:none;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer}
-  .kanji{font-size:64px;font-weight:900;letter-spacing:.06em}
-  .pill{display:inline-block;background:#111827;border:1px solid #374151;border-radius:999px;padding:6px 10px;font-size:12px;margin-right:6px;margin-top:6px}
-  .list{margin-top:10px}
-  .muted{color:var(--muted);font-size:13px}
-</style>
+  <meta charset="utf-8">
+  <title>当て字ジェネレーター</title>
+  <style>
+    body { font-family: 'Hiragino Sans','Noto Sans JP',sans-serif; background:#fafafa; color:#333; padding:20px; }
+    h1 { font-size:22px; margin-bottom:12px; }
+    input, button { font-size:16px; padding:6px; margin:5px 0; }
+    .result { margin-top:15px; padding:12px; background:#fff; border:1px solid #ccc; border-radius:6px; }
+  </style>
 </head>
 <body>
-<div class="app">
-  <!-- ヘッダー -->
-  <div class="card">
-    <h1 id="t-title">和名変換（WAMEI Converter）</h1>
-    <div class="sub" id="t-sub">英字/カナ入力OK。日本人が読める当て字と良い意味を返します。</div>
-    <div class="lang">
-      <label>
-        <select id="langSel">
-          <option value="ja">日本語</option>
-          <option value="en">English</option>
-          <option value="zh">中文</option>
-          <option value="ko">한국어</option>
-        </select>
-      </label>
-    </div>
-  </div>
+  <h1>英語名 → 当て字変換</h1>
+  <input type="text" id="nameInput" placeholder="名前を入力 (例: William)">
+  <button onclick="convert()">変換</button>
 
-  <!-- 入力 -->
-  <div class="card">
-    <div class="row">
-      <input id="name" placeholder="Mike, Karen, David, Tom…">
-      <button id="genBtn">生成</button>
-    </div>
-    <div class="muted" id="t-note">辞書優先 → 発音ハイブリッド。同名は常に同じ結果（決定的）。</div>
-  </div>
+  <div id="result" class="result"></div>
 
-  <!-- 結果 -->
-  <div class="card" id="result" style="display:none">
-    <div class="kanji" id="kanji">—</div>
-    <div style="margin-top:6px">
-      <span class="pill"><span id="t-kana">kana</span>: <span id="kana">—</span></span>
-      <span class="pill"><span id="t-romaji">romaji</span>: <span id="romaji">—</span></span>
-    </div>
-    <div class="list">
-      <div style="font-weight:700" id="t-meanings">漢字の意味</div>
-      <div id="meanings" class="muted" style="margin-top:4px"></div>
-    </div>
-    <div style="margin-top:8px" class="row">
-      <button id="copyBtn">コピー</button>
-      <button id="shareBtn">共有</button>
-    </div>
-  </div>
-</div>
+  <script>
+    // 当て字データベース (TOP50)
+    const atejiDB = {
+      // ---- 男性TOP25 ----
+      "Liam": ["理亜夢（リアム）","利阿武（リアム）"],
+      "Noah": ["乃亜（ノア）","野亜（ノア）"],
+      "Oliver": ["王利馬亜（オリバー）","央利葉（オリバー）"],
+      "Elijah": ["衣来蛇（イライジャ）","依頼者（イライジャ）"],
+      "James": ["寿恵武図（ジェームズ）","自衛夢寿（ジェームズ）"],
+      "William": ["宇井利愛夢（ウィリアム）","有利亜夢（ウィリアム）"],
+      "Benjamin": ["弁者民（ベンジャミン）","勉者民（ベンジャミン）"],
+      "Lucas": ["流華須（ルーカス）","留華寿（ルーカス）"],
+      "Henry": ["辺利（ヘンリー）","遍理（ヘンリー）"],
+      "Alexander": ["亜礼久三太（アレクサンダー）","亜連久三陀（アレクサンダー）"],
+      "Mason": ["明孫（メイソン）","盟尊（メイソン）"],
+      "Michael": ["舞家留（マイケル）","真伊蹴（マイケル）"],
+      "Ethan": ["伊参（イーサン）","慈参（イーサン）"],
+      "Daniel": ["檀衣流（ダニエル）","打仁得流（ダニエル）"],
+      "Jacob": ["寿栄古武（ジェイコブ）","自栄古武（ジェイコブ）"],
+      "Logan": ["朗眼（ローガン）","魯眼（ローガン）"],
+      "Jackson": ["若久尊（ジャクソン）","実音尊（ジャクソン）"],
+      "Levi": ["利倍（リーバイ）","礼倍（リーバイ）"],
+      "Sebastian": ["成羽好地案（セバスチャン）","世抜志庵（セバスチャン）"],
+      "Mateo": ["真帝王（マテオ）","魔帝央（マテオ）"],
+      "Jack": ["若久（ジャック）","寿悪（ジャック）"],
+      "Owen": ["王縁（オーウェン）","桜縁（オーウェン）"],
+      "Theodore": ["世緒堂（セオドア）","瀬尾堂（セオドア）"],
+      "Aiden": ["永伝（エイデン）","愛伝（エイデン）"],
+      "Samuel": ["寿美由留（サミュエル）","佐美憂流（サミュエル）"],
 
-<script>
-/* ========= 最小 i18n（ja / en / zh / ko） ========= */
-const I18N = {
-  ja:{title:"和名変換（WAMEI Converter）",sub:"英字/カナ入力OK。日本人が読める当て字と良い意味を返します。",note:"辞書優先 → 発音ハイブリッド。同名は常に同じ結果（決定的）。",ph:"名前を入力（例：Mike, Karen, David, Tom…）",gen:"生成",mean:"漢字の意味",copy:"コピー",share:"共有",copied:"コピーしました",kana:"kana",romaji:"romaji"},
-  en:{title:"Wamei — Kanji Atoji Maker",sub:"Enter a name (Latin or Katakana). Returns readable kanji with positive meanings.",note:"Dictionary-first → hybrid phonetics. Same name → same result (deterministic).",ph:"Enter a name (e.g., Mike, Karen, David, Tom…)",gen:"Generate",mean:"Kanji meanings",copy:"Copy",share:"Share",copied:"Copied!",kana:"kana",romaji:"romaji"},
-  zh:{title:"和名转换（WAMEI）",sub:"输入姓名（拉丁字母或片假名）。返回可读、寓意积极的汉字。",note:"词典优先 → 发音混合。同名始终返回相同结果。",ph:"输入姓名（例：Mike, Karen, David, Tom…）",gen:"生成",mean:"汉字含义",copy:"复制",share:"分享",copied:"已复制！",kana:"读音",romaji:"罗马字"},
-  ko:{title:"일본식 이름 변환 (WAMEI)",sub:"영문/가타카나 이름을 입력하면 읽기 쉬운 한자와 긍정적 의미를 제공합니다.",note:"사전 우선 → 발음 하이브리드. 같은 이름은 항상 같은 결과.",ph:"이름 입력 (예: Mike, Karen, David, Tom…)",gen:"생성",mean:"한자의 의미",copy:"복사",share:"공유",copied:"복사했습니다!",kana:"가나",romaji:"로마자"}
-};
-function detectLang(){
-  const url = new URLSearchParams(location.search).get('lang');
-  const saved = localStorage.getItem('wamei_lang');
-  const nav = (navigator.language||'en').slice(0,2);
-  const cand = (url||saved||nav||'en').toLowerCase();
-  return I18N[cand] ? cand : 'en';
-}
-function applyLang(l){
-  const t=I18N[l]; if(!t) return;
-  document.documentElement.lang=l;
-  document.getElementById('t-title').textContent=t.title;
-  document.getElementById('t-sub').textContent=t.sub;
-  document.getElementById('t-note').textContent=t.note;
-  document.getElementById('name').placeholder=t.ph;
-  document.getElementById('genBtn').textContent=t.gen;
-  document.getElementById('t-meanings').textContent=t.mean;
-  document.getElementById('copyBtn').textContent=t.copy;
-  document.getElementById('shareBtn').textContent=t.share;
-  document.getElementById('t-kana').textContent=t.kana;
-  document.getElementById('t-romaji').textContent=t.romaji;
-  document.getElementById('langSel').value=l;
-  localStorage.setItem('wamei_lang', l);
-}
-const LANG = detectLang(); applyLang(LANG);
-document.getElementById('langSel').addEventListener('change', e=>{
-  const lang = e.target.value; applyLang(lang);
-  const u=new URL(location.href); u.searchParams.set('lang', lang); history.replaceState(null,'',u);
-});
+      // ---- 女性TOP25 ----
+      "Olivia": ["王利日亜（オリビア）","央利美亜（オリビア）"],
+      "Emma": ["絵真（エマ）","恵舞（エマ）"],
+      "Amelia": ["亜芽莉亜（アメリア）","天芽理亜（アメリア）"],
+      "Ava": ["永羽（エイヴァ）","愛羽（エイヴァ）"],
+      "Sophia": ["素麸衣亜（ソフィア）","素妃亜（ソフィア）"], // ←アップデート版
+      "Isabella": ["衣座美良（イザベラ）","伊座倍羅（イザベラ）"],
+      "Mia": ["美亜（ミア）","実愛（ミア）"],
+      "Evelyn": ["永布鈴（エヴリン）","恵布琳（エヴリン）"],
+      "Harper": ["葉波（ハーパー）","波羽（ハーパー）"],
+      "Luna": ["瑠奈（ルナ）","留菜（ルナ）"],
+      "Camila": ["花美羅（カミラ）","香美良（カミラ）"],
+      "Gianna": ["慈安奈（ジアナ）","自安菜（ジアナ）"],
+      "Elizabeth": ["栄利座辺寿（エリザベス）","衣利座美寿（エリザベス）"], // ←アップデート版
+      "Eleanor": ["恵麗乃亜（エレノア）","衣麗野亜（エレノア）"],
+      "Ella": ["絵良（エラ）","恵羅（エラ）"],
+      "Abigail": ["亜美芸流（アビゲイル）","安美芸留（アビゲイル）"],
+      "Sofia": ["早妃亜（ソフィア）","蘇妃亜（ソフィア）"],
+      "Avery": ["永舞利（エイブリー）","愛舞理（エイブリー）"],
+      "Scarlett": ["好華亜烈都（スカーレット）","紅麗都（スカーレット）"], // ←アップデート版
+      "Emily": ["恵美里（エミリー）","絵美莉（エミリー）"],
+      "Aria": ["亜莉亜（アリア）","愛莉亜（アリア）"],
+      "Chloe": ["久路恵（クロエ）","黒江（クロエ）"],
+      "Grace": ["倶麗寿（グレース）","群麗須（グレース）"],
+      "Ellie": ["恵莉（エリー）","絵梨（エリー）"],
+      "Nora": ["乃良（ノーラ）","野良（ノーラ）"]
+    };
 
-/* ========= 辞書（最優先オーバーライド） + 文字意味 ========= */
-const nameDict = {
-  // 既存
-  "mike":   {kanji:"真行",    kana:"マイク",       romaji:"maiku",     meanings:["truth","to advance"]},
-  "tom":    {kanji:"登夢",    kana:"トム",         romaji:"tomu",      meanings:["rise","dream"]},
-  "thomas": {kanji:"登真志",  kana:"トーマス",     romaji:"toomasu",   meanings:["rise","truth","will"]},
-  "ken":    {kanji:"健",      kana:"ケン",         romaji:"ken",       meanings:["healthy"]},
-  "kevin":  {kanji:"恵美仁",  kana:"ケビン",       romaji:"kebin",     meanings:["blessing","beauty","benevolent"]},
-  // ご指定どおり
-  "karen":  {kanji:"薫連",    kana:"カレン",       romaji:"karen",     meanings:["fragrant","connected"]},
-  "david":  {kanji:"出威美都",kana:"デイヴィッド", romaji:"deibiddo",  meanings:["to step out","dignity","beauty","capital"]},
-  "john":   {kanji:"城安",    kana:"ジョン",       romaji:"jon",       meanings:["castle","peace"]},
-  "sarah":  {kanji:"咲良",    kana:"サラ",         romaji:"sara",      meanings:["bloom","good"]},
-  "james":  {kanji:"自栄夢寿",kana:"ジェームズ",   romaji:"james",     meanings:["identity","glory","dream","longevity"]},
-  "olivia": {kanji:"織美愛",  kana:"オリビア",     romaji:"olivia",    meanings:["weave/create","beauty","love"]},
-  "sophia": {kanji:"染不意愛",kana:"ソフィア",     romaji:"sophia",    meanings:["imbue","steadfast","intent","love"]},
-  "arthur": {kanji:"愛栄",    kana:"アーサー",     romaji:"arthur",    meanings:["love","honor/glory"]},
-  "asher":  {kanji:"愛至屋",  kana:"アッシャー",   romaji:"asher",     meanings:["love","attain","home/place"]},
-  "milo":   {kanji:"舞路",    kana:"マイロ",       romaji:"mairo",     meanings:["dance","path"]}
-};
-// 画面に出す時の意味補完（辞書に meanings が無い漢字分）
-const charMeaning = {
-  "真":"truth","行":"advance","登":"rise","夢":"dream","健":"healthy","恵":"blessing","美":"beauty","仁":"benevolent",
-  "香":"fragrance","玲":"tinkling-jade","出":"to step out","威":"dignity","都":"capital","城":"castle","安":"peace",
-  "咲":"bloom","良":"good","嘉":"excellent","瑛":"brilliant",
-  "自":"self/identity","栄":"glory","寿":"longevity","織":"weave/create","愛":"love","染":"imbue","不":"steadfast",
-  "意":"intent","至":"attain","屋":"home/place","舞":"dance","路":"path","薫":"fragrant","連":"connected"
-};
-
-/* ========= 発音ハイブリッド（辞書に無い名の保険） ========= */
-const map = {
-  a:["愛","亜"], i:["伊","以"], u:["宇"], e:["恵","栄"], o:["央","桜"],
-  ka:["香","佳"], ke:["恵","景"], ki:["輝","希"], ku:["空","久"], ko:["晃","幸"],
-  ta:["太"], te:["天"], to:["登","斗"],
-  na:["奈"], ma:["真","舞"], mi:["美"], mu:["夢"], me:["明"], mo:["望"],
-  ra:["良","来"], ri:["理","莉"], ru:["瑠","流"], re:["玲","礼"], ro:["朗"],
-  sa:["咲","沙"], shi:["志","詩"], su:["寿"], se:["清"], so:["蒼"],
-  // 追加：sh 系（Sasha / Asher / Sophia 等）
-  sha:["紗","祥"], shu:["秀","修"], sho:["翔","晶"], she:["栞","絢"],
-  // y 系
-  ya:["也"], yu:["優"], yo:["陽"]
-};
-const keys = Object.keys(map).sort((a,b)=>b.length-a.length);
-
-/* 正規化 */
-function norm(s){
-  let r=s.toLowerCase().replace(/[^a-z]/g,"");
-  r=r.replace(/ph/g,"f").replace(/qu/g,"ku").replace(/v/g,"b").replace(/x/g,"ks").replace(/th/g,"t");
-  r=r.replace(/c(?=[eiy])/g,"s").replace(/c/g,"k");
-  if(/[bcdfghjklmnpqrstvwxyz]$/.test(r)&&!/n$/.test(r)) r+="u";
-  return r;
-}
-
-/* カナ化（強化版） */
-function toKana(r){
-  let s=r.toLowerCase();
-  // 正規化
-  s=s.replace(/ph/g,'f').replace(/qu/g,'ku').replace(/v/g,'b').replace(/x/g,'ks').replace(/th/g,'t');
-  s=s.replace(/c(?=[eiy])/g,'s').replace(/c/g,'k');
-  // 促音マーカー
-  s=s.replace(/([bcdfghjklmnpqrstvwxyz])\1/g,'$1'); // 重複削減
-  s=s.replace(/([^aeiou])(?=[bcdfghjklmnpqrstvwxyz])/g,'$1\u0001');
-
-  // 複合音（長い順）
-  const pairs=[
-    ['she','シェ'],['che','チェ'],['je','ジェ'],
-    ['sha','シャ'],['shu','シュ'],['sho','ショ'],
-    ['cha','チャ'],['chu','チュ'],['cho','チョ'],
-    ['ja','ジャ'], ['ju','ジュ'], ['jo','ジョ'],
-    ['shi','シ'],  ['chi','チ'],  ['tsu','ツ']
-  ];
-  for(const [a,b] of pairs){ s=s.replaceAll(a,b); }
-
-  // 子音+母音
-  s=s.replace(/([kgstnhmyrwbzpdfj])([aeiou])/g,(m,c,v)=>{
-    const C={k:'カ',g:'ガ',s:'サ',z:'ザ',t:'タ',d:'ダ',n:'ナ',h:'ハ',b:'バ',p:'パ',
-             m:'マ',y:'ヤ',r:'ラ',w:'ワ',f:'ファ',j:'ジャ'};
-    const V={a:'ア',i:'イ',u:'ウ',e:'エ',o:'オ'};
-    return (C[c]||'')+(V[v]||'');
-  });
-  // 単独母音
-  s=s.replace(/[aeiou]/g,v=>({a:'ア',i:'イ',u:'ウ',e:'エ',o:'オ'}[v]));
-  // ン
-  s=s.replace(/n(?![aiueoy])/g,'ン');
-  // 促音
-  s=s.replace(/\u0001/g,'ッ');
-  // 語尾 -er を長音に（Asherなど）
-  s=s.replace(/ー?er$/,'アー');
-
-  return s;
-}
-
-/* セグメント */
-function seg(r){const out=[];for(let i=0;i<r.length;){let hit=null;for(const k of keys){if(r.startsWith(k,i)){hit=k;break}}if(hit){out.push(hit);i+=hit.length}else{out.push(r[i]);i++}}return out}
-
-/* 乱択（決定的に） */
-function h32(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
-function pick(arr,seed,i){return arr[(seed+i)%arr.length]}
-
-/* フォールバック生成（辞書に無い時） */
-function makeHybrid(name){
-  const r=norm(name), seed=h32(r), sg=seg(r);
-  const chosen=[]; let i=0; for(const s of sg){ if(map[s]) chosen.push(pick(map[s],seed,i++)); }
-  if(!chosen.length) chosen.push("和","明");
-  if(chosen.length===1) chosen.push("明");
-  if(chosen.length>4) chosen.splice(4);
-  return {kanji:chosen.join(""), romaji:r, kana:toKana(r)};
-}
-
-/* ========= 生成 & UI ========= */
-const $=id=>document.getElementById(id);
-function generate(v){
-  const lang=document.documentElement.lang||'en', t=I18N[lang];
-  const key=v.trim().toLowerCase();
-  const out = nameDict[key] ? nameDict[key] : makeHybrid(v);
-  const ms = out.meanings ? out.meanings : [...out.kanji].map(c=>charMeaning[c]).filter(Boolean);
-  $('kanji').textContent = out.kanji;
-  $('kana').textContent  = out.kana || toKana(out.romaji||v);
-  $('romaji').textContent= out.romaji || norm(v);
-  $('meanings').innerHTML = (ms && ms.length)? ms.map(m=>"• "+m).join("<br>") : (t.mean==="Kanji meanings"?"(meanings will grow)":"（意味は順次追加）");
-  $('result').style.display='block';
-}
-
-$('genBtn').addEventListener('click',()=>{const v=$('name').value.trim(); if(v) generate(v);});
-$('name').addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ const v=$('name').value.trim(); if(v) generate(v); }});
-$('copyBtn').addEventListener('click',async()=>{
-  const t=I18N[document.documentElement.lang].copied;
-  try{await navigator.clipboard.writeText($('kanji').textContent);}catch(e){} alert(t);
-});
-$('shareBtn').addEventListener('click',async()=>{
-  const k=$('kanji').textContent; const t=I18N[document.documentElement.lang].copied;
-  if(navigator.share){try{await navigator.share({text:k})}catch(e){}} else {try{await navigator.clipboard.writeText(k)}catch(e){} alert(t);}
-});
-
-/* 初期適用 */
-document.getElementById('name').placeholder = I18N[LANG].ph;
-</script>
+    function convert() {
+      const name = document.getElementById("nameInput").value.trim();
+      const resultDiv = document.getElementById("result");
+      if (atejiDB[name]) {
+        resultDiv.innerHTML = "<b>" + name + " の当て字候補:</b><br>" + atejiDB[name].join("<br>");
+      } else {
+        resultDiv.innerHTML = "まだ当て字が登録されていません。";
+      }
+    }
+  </script>
 </body>
 </html>
