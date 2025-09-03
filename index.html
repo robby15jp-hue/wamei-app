@@ -1,89 +1,177 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <title>当て字ジェネレーター</title>
-  <style>
-    body { font-family: 'Hiragino Sans','Noto Sans JP',sans-serif; background:#fafafa; color:#333; padding:20px; }
-    h1 { font-size:22px; margin-bottom:12px; }
-    input, button { font-size:16px; padding:6px; margin:5px 0; }
-    .result { margin-top:15px; padding:12px; background:#fff; border:1px solid #ccc; border-radius:6px; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>当て字ジェネレーター | EN / ZH / KO</title>
+<style>
+  :root { --bg:#fafafa; --card:#fff; --text:#222; --muted:#666; --line:#e5e7eb; --p:#4f46e5 }
+  *{box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);margin:0}
+  .app{max-width:720px;margin:0 auto;padding:20px}
+  h1{font-size:22px;margin:6px 0 14px} p{color:var(--muted);margin:0 0 12px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  select,input,button{font-size:16px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  input{flex:1;min-width:200px}
+  button{background:var(--p);color:#fff;border:none}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:14px}
+  .hit{font-size:20px;line-height:1.2;margin:6px 0}
+  .kana{display:inline-block;margin-left:6px;color:var(--muted);font-size:14px}
+  .copybtn{font-size:12px;padding:6px 8px;margin-left:8px;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:8px}
+  .tips{color:var(--muted);font-size:14px}
+  .suggest a{display:inline-block;margin:4px 6px 0 0;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--text);text-decoration:none}
+  footer{color:var(--muted);font-size:12px;margin-top:20px}
+</style>
 </head>
 <body>
-  <h1>英語名 → 当て字変換</h1>
-  <input type="text" id="nameInput" placeholder="名前を入力 (例: William)">
-  <button onclick="convert()">変換</button>
+<div class="app">
+  <h1>英語・中国語・韓国語の名前 → <wbr>当て字変換</h1>
+  <p>言語を選んで名前を入力（例：<b>William</b> / <b>Li</b> / <b>Kim</b> / <b>Milo</b>）。大文字小文字どちらでもOK。</p>
 
-  <div id="result" class="result"></div>
+  <div class="row">
+    <select id="lang">
+      <option value="en">英語 (EN)</option>
+      <option value="zh">中国語ローマ字 (ZH pinyin)</option>
+      <option value="ko">韓国語ローマ字 (KO)</option>
+    </select>
+    <input id="q" placeholder="Name (例: William / Li / Kim)" autocomplete="off">
+    <button id="go">変換</button>
+  </div>
 
-  <script>
-    // 当て字データベース (TOP50)
-    const atejiDB = {
-      // ---- 男性TOP25 ----
-      "Liam": ["理亜夢（リアム）","利阿武（リアム）"],
-      "Noah": ["乃亜（ノア）","野亜（ノア）"],
-      "Oliver": ["王利馬亜（オリバー）","央利葉（オリバー）"],
-      "Elijah": ["衣来蛇（イライジャ）","依頼者（イライジャ）"],
-      "James": ["寿恵武図（ジェームズ）","自衛夢寿（ジェームズ）"],
-      "William": ["宇井利愛夢（ウィリアム）","有利亜夢（ウィリアム）"],
-      "Benjamin": ["弁者民（ベンジャミン）","勉者民（ベンジャミン）"],
-      "Lucas": ["流華須（ルーカス）","留華寿（ルーカス）"],
-      "Henry": ["辺利（ヘンリー）","遍理（ヘンリー）"],
-      "Alexander": ["亜礼久三太（アレクサンダー）","亜連久三陀（アレクサンダー）"],
-      "Mason": ["明孫（メイソン）","盟尊（メイソン）"],
-      "Michael": ["舞家留（マイケル）","真伊蹴（マイケル）"],
-      "Ethan": ["伊参（イーサン）","慈参（イーサン）"],
-      "Daniel": ["檀衣流（ダニエル）","打仁得流（ダニエル）"],
-      "Jacob": ["寿栄古武（ジェイコブ）","自栄古武（ジェイコブ）"],
-      "Logan": ["朗眼（ローガン）","魯眼（ローガン）"],
-      "Jackson": ["若久尊（ジャクソン）","実音尊（ジャクソン）"],
-      "Levi": ["利倍（リーバイ）","礼倍（リーバイ）"],
-      "Sebastian": ["成羽好地案（セバスチャン）","世抜志庵（セバスチャン）"],
-      "Mateo": ["真帝王（マテオ）","魔帝央（マテオ）"],
-      "Jack": ["若久（ジャック）","寿悪（ジャック）"],
-      "Owen": ["王縁（オーウェン）","桜縁（オーウェン）"],
-      "Theodore": ["世緒堂（セオドア）","瀬尾堂（セオドア）"],
-      "Aiden": ["永伝（エイデン）","愛伝（エイデン）"],
-      "Samuel": ["寿美由留（サミュエル）","佐美憂流（サミュエル）"],
+  <div id="out" class="card"></div>
+  <footer>Tip: ヒットしない場合は似た名前候補を表示します。/ Add more names later by editing <code>db</code> in the source.</footer>
+</div>
 
-      // ---- 女性TOP25 ----
-      "Olivia": ["王利日亜（オリビア）","央利美亜（オリビア）"],
-      "Emma": ["絵真（エマ）","恵舞（エマ）"],
-      "Amelia": ["亜芽莉亜（アメリア）","天芽理亜（アメリア）"],
-      "Ava": ["永羽（エイヴァ）","愛羽（エイヴァ）"],
-      "Sophia": ["素麸衣亜（ソフィア）","素妃亜（ソフィア）"], // ←アップデート版
-      "Isabella": ["衣座美良（イザベラ）","伊座倍羅（イザベラ）"],
-      "Mia": ["美亜（ミア）","実愛（ミア）"],
-      "Evelyn": ["永布鈴（エヴリン）","恵布琳（エヴリン）"],
-      "Harper": ["葉波（ハーパー）","波羽（ハーパー）"],
-      "Luna": ["瑠奈（ルナ）","留菜（ルナ）"],
-      "Camila": ["花美羅（カミラ）","香美良（カミラ）"],
-      "Gianna": ["慈安奈（ジアナ）","自安菜（ジアナ）"],
-      "Elizabeth": ["栄利座辺寿（エリザベス）","衣利座美寿（エリザベス）"], // ←アップデート版
-      "Eleanor": ["恵麗乃亜（エレノア）","衣麗野亜（エレノア）"],
-      "Ella": ["絵良（エラ）","恵羅（エラ）"],
-      "Abigail": ["亜美芸流（アビゲイル）","安美芸留（アビゲイル）"],
-      "Sofia": ["早妃亜（ソフィア）","蘇妃亜（ソフィア）"],
-      "Avery": ["永舞利（エイブリー）","愛舞理（エイブリー）"],
-      "Scarlett": ["好華亜烈都（スカーレット）","紅麗都（スカーレット）"], // ←アップデート版
-      "Emily": ["恵美里（エミリー）","絵美莉（エミリー）"],
-      "Aria": ["亜莉亜（アリア）","愛莉亜（アリア）"],
-      "Chloe": ["久路恵（クロエ）","黒江（クロエ）"],
-      "Grace": ["倶麗寿（グレース）","群麗須（グレース）"],
-      "Ellie": ["恵莉（エリー）","絵梨（エリー）"],
-      "Nora": ["乃良（ノーラ）","野良（ノーラ）"]
-    };
+<script>
+/* ========= データベース =========
+   すべて「小文字キー」で検索します（入力は小文字化して照合） */
+const db = {
+  en: {
+    // 男性TOP25
+    "liam":[["理亜夢","リアム"],["利阿武","リアム"]],
+    "noah":[["乃亜","ノア"],["野亜","ノア"]],
+    "oliver":[["王利馬亜","オリバー"],["央利葉","オリバー"]],
+    "elijah":[["衣来蛇","イライジャ"],["依頼者","イライジャ"]],
+    "james":[["寿恵武図","ジェームズ"],["自衛夢寿","ジェームズ"]],
+    "william":[["宇井利愛夢","ウィリアム"],["有利亜夢","ウィリアム"]],
+    "benjamin":[["弁者民","ベンジャミン"],["勉者民","ベンジャミン"]],
+    "lucas":[["流華須","ルーカス"],["留華寿","ルーカス"]],
+    "henry":[["辺利","ヘンリー"],["遍理","ヘンリー"]],
+    "alexander":[["亜礼久三太","アレクサンダー"],["亜連久三陀","アレクサンダー"]],
+    "mason":[["明孫","メイソン"],["盟尊","メイソン"]],
+    "michael":[["舞家留","マイケル"],["真伊蹴","マイケル"]],
+    "ethan":[["伊参","イーサン"],["慈参","イーサン"]],
+    "daniel":[["檀衣流","ダニエル"],["打仁得流","ダニエル"]],
+    "jacob":[["寿栄古武","ジェイコブ"],["自栄古武","ジェイコブ"]],
+    "logan":[["朗眼","ローガン"],["魯眼","ローガン"]],
+    "jackson":[["若久尊","ジャクソン"],["実音尊","ジャクソン"]],
+    "levi":[["利倍","リーバイ"],["礼倍","リーバイ"]],
+    "sebastian":[["成羽好地案","セバスチャン"],["世抜志庵","セバスチャン"]],
+    "mateo":[["真帝王","マテオ"],["魔帝央","マテオ"]],
+    "jack":[["若久","ジャック"],["寿悪","ジャック"]],
+    "owen":[["王縁","オーウェン"],["桜縁","オーウェン"]],
+    "theodore":[["世緒堂","セオドア"],["瀬尾堂","セオドア"]],
+    "aiden":[["永伝","エイデン"],["愛伝","エイデン"]],
+    "samuel":[["寿美由留","サミュエル"],["佐美憂流","サミュエル"]],
+    // 女性TOP25
+    "olivia":[["王利日亜","オリビア"],["央利美亜","オリビア"]],
+    "emma":[["絵真","エマ"],["恵舞","エマ"]],
+    "amelia":[["亜芽莉亜","アメリア"],["天芽理亜","アメリア"]],
+    "ava":[["永羽","エイヴァ"],["愛羽","エイヴァ"]],
+    "sophia":[["素麸衣亜","ソフィア"],["素妃亜","ソフィア"]],
+    "isabella":[["衣座美良","イザベラ"],["伊座倍羅","イザベラ"]],
+    "mia":[["美亜","ミア"],["実愛","ミア"]],
+    "evelyn":[["永布鈴","エヴリン"],["恵布琳","エヴリン"]],
+    "harper":[["葉波","ハーパー"],["波羽","ハーパー"]],
+    "luna":[["瑠奈","ルナ"],["留菜","ルナ"]],
+    "camila":[["花美羅","カミラ"],["香美良","カミラ"]],
+    "gianna":[["慈安奈","ジアナ"],["自安菜","ジアナ"]],
+    "elizabeth":[["栄利座辺寿","エリザベス"],["衣利座美寿","エリザベス"]],
+    "eleanor":[["恵麗乃亜","エレノア"],["衣麗野亜","エレノア"]],
+    "ella":[["絵良","エラ"],["恵羅","エラ"]],
+    "abigail":[["亜美芸流","アビゲイル"],["安美芸留","アビゲイル"]],
+    "sofia":[["早妃亜","ソフィア"],["蘇妃亜","ソフィア"]],
+    "avery":[["永舞利","エイブリー"],["愛舞理","エイブリー"]],
+    "scarlett":[["好華亜烈都","スカーレット"],["紅麗都","スカーレット"]],
+    "emily":[["恵美里","エミリー"],["絵美莉","エミリー"]],
+    "aria":[["亜莉亜","アリア"],["愛莉亜","アリア"]],
+    "chloe":[["久路恵","クロエ"],["黒江","クロエ"]],
+    "grace":[["倶麗寿","グレース"],["群麗須","グレース"]],
+    "ellie":[["恵莉","エリー"],["絵梨","エリー"]],
+    "nora":[["乃良","ノーラ"],["野良","ノーラ"]],
+    // 追加：Milo（サイトで試した名前）
+    "milo":[["魅朗","マイロ"],["美路","マイロ"]]
+  },
+  zh: {
+    // 中国語（ピンイン → 常用漢字＋読み）
+    "li":[["李","リー"],["里","リー"]],
+    "wang":[["王","ワン"],["旺","ワン"]],
+    "zhang":[["張","ジャン"],["章","ジャン"]],
+    "liu":[["劉","リウ"],["流","リウ"]],
+    "chen":[["陳","チェン"],["辰","チェン"]],
+    "wei":[["偉","ウェイ"],["瑋","ウェイ"]],
+    "jun":[["俊","ジュン"],["君","ジュン"]],
+    "mei":[["美","メイ"],["梅","メイ"]],
+    "ling":[["玲","リン"],["凌","リン"]],
+    "xin":[["欣","シン"],["信","シン"]]
+  },
+  ko: {
+    // 韓国語（ローマ字 → 漢字系表記＋読み）
+    "kim":[["金","キム"]],
+    "lee":[["李","イ / リ"],["異","イ"]],
+    "park":[["朴","パク"]],
+    "choi":[["崔","チェ"]],
+    "jung":[["鄭","チョン"]],
+    "kang":[["姜","カン"]],
+    "yoon":[["尹","ユン"]],
+    "han":[["韓","ハン"]],
+    "lim":[["林","イム / リム"]],
+    "shin":[["申","シン"]]
+  }
+};
 
-    function convert() {
-      const name = document.getElementById("nameInput").value.trim();
-      const resultDiv = document.getElementById("result");
-      if (atejiDB[name]) {
-        resultDiv.innerHTML = "<b>" + name + " の当て字候補:</b><br>" + atejiDB[name].join("<br>");
-      } else {
-        resultDiv.innerHTML = "まだ当て字が登録されていません。";
-      }
-    }
-  </script>
+/* ========== 便利関数 ========== */
+const out = document.getElementById('out');
+document.getElementById('go').addEventListener('click', convert);
+document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Enter') convert(); });
+
+function normalize(s){ return (s||"").toLowerCase().trim(); }
+
+function convert(){
+  const lang = document.getElementById('lang').value;
+  const key  = normalize(document.getElementById('q').value);
+  const dict = db[lang] || {};
+  const hits = dict[key];
+
+  if (hits){
+    out.innerHTML = renderHits(key, hits);
+  } else {
+    // 似た名前サジェスト（前方一致・部分一致）
+    const cand = Object.keys(dict).filter(k => k.includes(key)).slice(0,8);
+    out.innerHTML = `
+      <div class="tips">まだ当て字が登録されていません。</div>
+      ${cand.length ? `<div class="suggest"><div class="tips" style="margin-top:8px">もしかして：</div>${cand.map(k=>`<a href="#" onclick="fill('${k}');return false;">${k}</a>`).join('')}</div>` : ''}`;
+  }
+}
+
+function fill(name){
+  document.getElementById('q').value = name;
+  convert();
+}
+
+function renderHits(name, items){
+  const title = `<div class="tips">「${escapeHtml(name)}」の候補</div>`;
+  const list = items.map(([kanji, kana]) => `
+    <div class="hit">${kanji} <span class="kana">（${kana}）</span>
+      <button class="copybtn" onclick="copyText('${kanji}（${kana}）')">コピー</button>
+    </div>`).join('');
+  return title + list;
+}
+
+function copyText(t){
+  navigator.clipboard?.writeText(t);
+}
+
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+</script>
 </body>
-</html>
+</html>  
