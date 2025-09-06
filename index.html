@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>当て字ジェネレーター | EN / ZH / KO</title>
 <style>
-  :root { --bg:#fafafa; --card:#fff; --text:#222; --muted:#666; --line:#e5e7eb; --p:#4f46e5 }
+  :root{--bg:#fafafa;--card:#fff;--text:#222;--muted:#666;--line:#e5e7eb;--p:#4f46e5}
   *{box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);margin:0}
   .app{max-width:720px;margin:0 auto;padding:20px}
   h1{font-size:22px;margin:6px 0 14px} p{color:var(--muted);margin:0 0 12px}
@@ -24,7 +24,7 @@
 </head>
 <body>
 <div class="app">
-  <h1>英語・中国語・韓国語の名前 → <wbr>当て字変換</h1>
+  <h1>英語・中国語・韓国語の名前 → 当て字変換</h1>
   <p>言語を選んで名前を入力（例：<b>William</b> / <b>Li</b> / <b>Kim</b> / <b>Milo</b>）。大文字小文字どちらでもOK。</p>
 
   <div class="row">
@@ -38,15 +38,14 @@
   </div>
 
   <div id="out" class="card"></div>
-  <footer>Tip: ヒットしない場合は似た名前候補を表示します。/ Add more names later by editing <code>db</code> in the source.</footer>
+  <footer>ヒットしない場合は似た候補を表示します。辞書は <code>db</code>、別名は <code>aliases</code> に追記してください。</footer>
 </div>
 
 <script>
-/* ========= データベース =========
-   すべて「小文字キー」で検索します（入力は小文字化して照合） */
+/* ================= データベース（すべて小文字キー） ================= */
 const db = {
   en: {
-    // 男性TOP25
+    // 男性 TOP25
     "liam":[["理亜夢","リアム"],["利阿武","リアム"]],
     "noah":[["乃亜","ノア"],["野亜","ノア"]],
     "oliver":[["王利馬亜","オリバー"],["央利葉","オリバー"]],
@@ -72,7 +71,10 @@ const db = {
     "theodore":[["世緒堂","セオドア"],["瀬尾堂","セオドア"]],
     "aiden":[["永伝","エイデン"],["愛伝","エイデン"]],
     "samuel":[["寿美由留","サミュエル"],["佐美憂流","サミュエル"]],
-    // 女性TOP25
+    // よく使う追加
+    "milo":[["魅朗","マイロ"],["美路","マイロ"]],
+    "john":[["常治","ジョン"],["丈司","ジョン"]],
+    // 女性 TOP25
     "olivia":[["王利日亜","オリビア"],["央利美亜","オリビア"]],
     "emma":[["絵真","エマ"],["恵舞","エマ"]],
     "amelia":[["亜芽莉亜","アメリア"],["天芽理亜","アメリア"]],
@@ -97,12 +99,9 @@ const db = {
     "chloe":[["久路恵","クロエ"],["黒江","クロエ"]],
     "grace":[["倶麗寿","グレース"],["群麗須","グレース"]],
     "ellie":[["恵莉","エリー"],["絵梨","エリー"]],
-    "nora":[["乃良","ノーラ"],["野良","ノーラ"]],
-    // 追加：Milo（サイトで試した名前）
-    "milo":[["魅朗","マイロ"],["美路","マイロ"]]
+    "nora":[["乃良","ノーラ"],["野良","ノーラ"]]
   },
-  zh: {
-    // 中国語（ピンイン → 常用漢字＋読み）
+  zh: {  // 中国語（ピンイン）
     "li":[["李","リー"],["里","リー"]],
     "wang":[["王","ワン"],["旺","ワン"]],
     "zhang":[["張","ジャン"],["章","ジャン"]],
@@ -114,8 +113,7 @@ const db = {
     "ling":[["玲","リン"],["凌","リン"]],
     "xin":[["欣","シン"],["信","シン"]]
   },
-  ko: {
-    // 韓国語（ローマ字 → 漢字系表記＋読み）
+  ko: {  // 韓国語（ローマ字）
     "kim":[["金","キム"]],
     "lee":[["李","イ / リ"],["異","イ"]],
     "park":[["朴","パク"]],
@@ -129,33 +127,49 @@ const db = {
   }
 };
 
-/* ========== 便利関数 ========== */
+/* ================= エイリアス（ニックネーム→本名） ================= */
+const aliases = {
+  // 男性
+  "mike":"michael","mikey":"michael",
+  "will":"william","bill":"william","billy":"william",
+  "alex":"alexander",
+  "jack":"jack",         // 明示
+  "johnny":"john",
+  // 女性
+  "liz":"elizabeth","beth":"elizabeth","liza":"elizabeth",
+  "bella":"isabella",
+  "ellie":"eleanor","elly":"eleanor",
+  "ally":"abigail","abi":"abigail","abby":"abigail"
+};
+
+/* ================= 変換処理 ================= */
 const out = document.getElementById('out');
 document.getElementById('go').addEventListener('click', convert);
 document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Enter') convert(); });
 
-function normalize(s){ return (s||"").toLowerCase().trim(); }
+function normalize(s){ return (s||'').toLowerCase().trim(); }
 
 function convert(){
   const lang = document.getElementById('lang').value;
-  const key  = normalize(document.getElementById('q').value);
+  const raw  = document.getElementById('q').value;
+  let key    = normalize(raw);
+
+  // エイリアス解決（mike→michael 等）
+  if (aliases[key]) key = aliases[key];
+
   const dict = db[lang] || {};
-  const hits = dict[key];
+  const hit  = dict[key];
 
-  if (hits){
-    out.innerHTML = renderHits(key, hits);
-  } else {
-    // 似た名前サジェスト（前方一致・部分一致）
-    const cand = Object.keys(dict).filter(k => k.includes(key)).slice(0,8);
-    out.innerHTML = `
-      <div class="tips">まだ当て字が登録されていません。</div>
-      ${cand.length ? `<div class="suggest"><div class="tips" style="margin-top:8px">もしかして：</div>${cand.map(k=>`<a href="#" onclick="fill('${k}');return false;">${k}</a>`).join('')}</div>` : ''}`;
+  if (hit){
+    out.innerHTML = renderHits(key, hit);
+    return;
   }
-}
 
-function fill(name){
-  document.getElementById('q').value = name;
-  convert();
+  // 部分一致サジェスト（前方・部分一致）
+  const cand = Object.keys(dict).filter(k => k.includes(key)).slice(0,8);
+  out.innerHTML = `
+    <div class="tips">まだ当て字が登録されていません。</div>
+    ${cand.length ? `<div class="suggest"><div class="tips" style="margin-top:8px">もしかして：</div>${cand.map(k=>`<a href="#" onclick="fill('${k}');return false;">${k}</a>`).join('')}</div>` : ''}`;
 }
 
 function renderHits(name, items){
@@ -166,12 +180,9 @@ function renderHits(name, items){
     </div>`).join('');
   return title + list;
 }
-
-function copyText(t){
-  navigator.clipboard?.writeText(t);
-}
-
-function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function copyText(t){ navigator.clipboard?.writeText(t); }
+function fill(name){ document.getElementById('q').value = name; convert(); }
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 </script>
 </body>
-</html>  
+</html>
