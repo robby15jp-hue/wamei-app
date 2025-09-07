@@ -16,16 +16,17 @@
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:14px}
   .hit{font-size:20px;line-height:1.2;margin:6px 0}
   .kana{display:inline-block;margin-left:6px;color:var(--muted);font-size:14px}
-  .copybtn{font-size:12px;padding:6px 8px;margin-left:8px;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:8px}
+  .badge{display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted)}
+  .copybtn{font-size:12px;padding:6px 8px;margin-left:8px;border:1px solid var(--line);background:#fff;color:#333;border-radius:8px}
   .tips{color:var(--muted);font-size:14px}
-  .suggest a{display:inline-block;margin:4px 6px 0 0;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--text);text-decoration:none}
+  .suggest a{display:inline-block;margin:4px 6px 0 0;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:#333;text-decoration:none}
   footer{color:var(--muted);font-size:12px;margin-top:20px}
 </style>
 </head>
 <body>
 <div class="app">
   <h1>英語・中国語・韓国語の名前 → 当て字変換</h1>
-  <p>言語を選んで名前を入力（例：<b>William</b> / <b>Li</b> / <b>Kim</b> / <b>Milo</b>）。大文字小文字どちらでもOK。</p>
+  <p>言語を選んで名前を入力（例：<b>William</b> / <b>Tom</b> / <b>Li</b> / <b>Kim</b> / <b>Milo</b>）。大文字小文字どちらでもOK。</p>
 
   <div class="row">
     <select id="lang">
@@ -33,19 +34,19 @@
       <option value="zh">中国語ローマ字 (ZH pinyin)</option>
       <option value="ko">韓国語ローマ字 (KO)</option>
     </select>
-    <input id="q" placeholder="Name (例: William / Li / Kim)" autocomplete="off">
+    <input id="q" placeholder="Name (例: William / Tom / Li / Kim)" autocomplete="off">
     <button id="go">変換</button>
   </div>
 
   <div id="out" class="card"></div>
-  <footer>ヒットしない場合は似た候補を表示します。辞書は <code>db</code>、別名は <code>aliases</code> に追記してください。</footer>
+  <footer>ヒットしない場合は似た候補を表示。辞書は <code>db</code>、別名は <code>aliases</code> に追記。</footer>
 </div>
 
 <script>
-/* ================= データベース（すべて小文字キー） ================= */
+/* ============ 辞書（全て小文字キー） ============ */
 const db = {
   en: {
-    // 男性 TOP25
+    // 男性 TOP25（抜粋＋拡張）
     "liam":[["理亜夢","リアム"],["利阿武","リアム"]],
     "noah":[["乃亜","ノア"],["野亜","ノア"]],
     "oliver":[["王利馬亜","オリバー"],["央利葉","オリバー"]],
@@ -71,10 +72,19 @@ const db = {
     "theodore":[["世緒堂","セオドア"],["瀬尾堂","セオドア"]],
     "aiden":[["永伝","エイデン"],["愛伝","エイデン"]],
     "samuel":[["寿美由留","サミュエル"],["佐美憂流","サミュエル"]],
-    // よく使う追加
-    "milo":[["魅朗","マイロ"],["美路","マイロ"]],
+    // 追加：よく使うベース名
+    "thomas":[["登真須","トーマス"],["当真志","トーマス"]],
+    "tom":[["富夢","トム"]],             // ← 直接対応
+    "joseph":[["常世布","ジョセフ"],["譲世布","ジョセフ"]],
+    "robert":[["郎倍斗","ロバート"],["路伯斗","ロバート"]],
+    "charles":[["茶瑠図","チャールズ"],["茶琉寿","チャールズ"]],
+    "anthony":[["安登仁","アンソニー"],["庵蘇仁","アンソニー"]],
+    "andrew":[["安導流","アンドリュー"],["案土流","アンドリュー"]],
+    "matthew":[["真忠","マシュー"],["待秀","マシュー"]],
+    "david":[["大微土","デイビッド"],["大備人","デイビッド"]],
     "john":[["常治","ジョン"],["丈司","ジョン"]],
-    // 女性 TOP25
+    "milo":[["魅朗","マイロ"],["美路","マイロ"]],
+    // 女性 TOP25（抜粋＋拡張）
     "olivia":[["王利日亜","オリビア"],["央利美亜","オリビア"]],
     "emma":[["絵真","エマ"],["恵舞","エマ"]],
     "amelia":[["亜芽莉亜","アメリア"],["天芽理亜","アメリア"]],
@@ -99,9 +109,10 @@ const db = {
     "chloe":[["久路恵","クロエ"],["黒江","クロエ"]],
     "grace":[["倶麗寿","グレース"],["群麗須","グレース"]],
     "ellie":[["恵莉","エリー"],["絵梨","エリー"]],
-    "nora":[["乃良","ノーラ"],["野良","ノーラ"]]
+    "nora":[["乃良","ノーラ"],["野良","ノーラ"]],
+    "katherine":[["佳瑟琳","キャサリン"],["華瑟琳","キャサリン"]]
   },
-  zh: {  // 中国語（ピンイン）
+  zh: { // 中国語（pinyin）
     "li":[["李","リー"],["里","リー"]],
     "wang":[["王","ワン"],["旺","ワン"]],
     "zhang":[["張","ジャン"],["章","ジャン"]],
@@ -113,7 +124,7 @@ const db = {
     "ling":[["玲","リン"],["凌","リン"]],
     "xin":[["欣","シン"],["信","シン"]]
   },
-  ko: {  // 韓国語（ローマ字）
+  ko: { // 韓国語（ローマ字）
     "kim":[["金","キム"]],
     "lee":[["李","イ / リ"],["異","イ"]],
     "park":[["朴","パク"]],
@@ -127,22 +138,31 @@ const db = {
   }
 };
 
-/* ================= エイリアス（ニックネーム→本名） ================= */
+/* ============ 別名（小文字） ============ */
 const aliases = {
   // 男性
   "mike":"michael","mikey":"michael",
   "will":"william","bill":"william","billy":"william",
   "alex":"alexander",
-  "jack":"jack",         // 明示
+  "tom":"tom","tommy":"thomas",        // Tomは直接ヒット、TommyはThomasへ
+  "joe":"joseph","joey":"joseph",
+  "bob":"robert","rob":"robert","robby":"robert","bobby":"robert",
+  "charlie":"charles","chuck":"charles",
+  "matt":"matthew",
+  "tony":"anthony",
+  "andy":"andrew",
+  "dan":"daniel",
+  "dave":"david",
   "johnny":"john",
   // 女性
   "liz":"elizabeth","beth":"elizabeth","liza":"elizabeth",
   "bella":"isabella",
-  "ellie":"eleanor","elly":"eleanor",
-  "ally":"abigail","abi":"abigail","abby":"abigail"
+  "ellie":"ellie","elly":"eleanor",   // Ellie はそのまま辞書にある
+  "kate":"katherine","katie":"katherine","kat":"katherine",
+  "abby":"abigail","abi":"abigail","ally":"abigail"
 };
 
-/* ================= 変換処理 ================= */
+/* ============ UIロジック ============ */
 const out = document.getElementById('out');
 document.getElementById('go').addEventListener('click', convert);
 document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Enter') convert(); });
@@ -154,35 +174,47 @@ function convert(){
   const raw  = document.getElementById('q').value;
   let key    = normalize(raw);
 
-  // エイリアス解決（mike→michael 等）
+  // エイリアス解決
   if (aliases[key]) key = aliases[key];
 
+  // ① 現在の言語で検索
   const dict = db[lang] || {};
-  const hit  = dict[key];
+  let hit = dict[key];
+  let source = lang;
+
+  // ② 無ければ他言語にもフォールバック（Li を ENで入れてもヒットさせる）
+  if (!hit){
+    for (const alt of Object.keys(db)){
+      if (alt===lang) continue;
+      if (db[alt][key]){ hit = db[alt][key]; source = alt; break; }
+    }
+  }
 
   if (hit){
-    out.innerHTML = renderHits(key, hit);
+    out.innerHTML = renderHits(raw, hit, source);
     return;
   }
 
-  // 部分一致サジェスト（前方・部分一致）
+  // ③ サジェスト（現在の言語で部分一致）
   const cand = Object.keys(dict).filter(k => k.includes(key)).slice(0,8);
   out.innerHTML = `
     <div class="tips">まだ当て字が登録されていません。</div>
     ${cand.length ? `<div class="suggest"><div class="tips" style="margin-top:8px">もしかして：</div>${cand.map(k=>`<a href="#" onclick="fill('${k}');return false;">${k}</a>`).join('')}</div>` : ''}`;
 }
 
-function renderHits(name, items){
-  const title = `<div class="tips">「${escapeHtml(name)}」の候補</div>`;
+function renderHits(name, items, source){
+  const label = source==='en' ? 'EN' : source==='zh' ? 'ZH' : 'KO';
+  const title = `<div class="tips">「${escapeHtml(name)}」の候補 <span class="badge">${label}</span></div>`;
   const list = items.map(([kanji, kana]) => `
     <div class="hit">${kanji} <span class="kana">（${kana}）</span>
       <button class="copybtn" onclick="copyText('${kanji}（${kana}）')">コピー</button>
     </div>`).join('');
   return title + list;
 }
+
 function copyText(t){ navigator.clipboard?.writeText(t); }
 function fill(name){ document.getElementById('q').value = name; convert(); }
-function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[c])); }
 </script>
 </body>
 </html>
