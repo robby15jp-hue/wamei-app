@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>当て字ジェネレーター | English → Kanji</title>
+<title>当て字ジェネレーター | Français → Kanji</title>
 <style>
   :root{--bg:#fafafa;--card:#fff;--text:#222;--muted:#666;--line:#e5e7eb;--p:#4f46e5}
   *{box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);margin:0}
@@ -20,353 +20,125 @@
   .tips{color:#666;font-size:14px}
   .desc-foreign{color:#2563eb;font-weight:bold;margin:6px 0 2px}
   .desc-jp{color:#555;margin:0 0 8px}
-  .suggest a{display:inline-block;margin:4px 6px 0 0;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:#333;text-decoration:none}
   .badge{display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:#666}
+  .suggest a{display:inline-block;margin:4px 6px 0 0;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:#333;text-decoration:none}
   footer{color:#777;font-size:12px;margin-top:20px}
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>英語名 → 当て字変換（EN only）</h1>
-  <p class="desc-foreign">🌐 Enter an English name (ex: William, Tom, Mike). Case-insensitive.</p>
-  <p class="desc-jp">英語名を入力してください（例：ウィリアム、トム、マイク）。大文字小文字は区別しません。</p>
+  <h1>フランス語名 → 当て字変換（FR only）</h1>
+  <p class="desc-foreign">🌐 Entrez un prénom français (ex : Louis, Léo, Camille). Insensible à la casse et aux accents.</p>
+  <p class="desc-jp">フランス語の名前を入力してください（例：ルイ／レオ／カミーユ）。大文字小文字・アクセントの有無を区別しません。</p>
 
   <div class="row">
-    <input id="q" placeholder="Name (ex: William / Tom / Mike)" autocomplete="off">
+    <input id="q" placeholder="Prénom (ex: Louis / Léo / Camille)" autocomplete="off">
     <button id="go">変換</button>
   </div>
 
-  <div id="out" class="card">準備OK。Tom / William / Mike / Olivia などでテストしてください。</div>
-  <footer>辞書は <code>db</code>、別名は <code>aliases</code> に追記。全件3行解説付き。</footer>
+  <div id="out" class="card">準備OK。Louis / Léo / Jules / Camille / Chloé / Inès などでテスト。</div>
+  <footer>辞書は <code>db</code>、別名は <code>aliases</code> に追加。全件3行解説付き。</footer>
 </div>
 
 <script>
-/* ============== ユーティリティ ============== */
-const norm = s => (s||'').toLowerCase().trim();
+/* ===== ユーティリティ（小文字化＋アクセント除去） ===== */
+const deburr = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const norm = s => deburr(s).toLowerCase().trim();
+
 const out = document.getElementById('out');
 document.getElementById('go').addEventListener('click', convert);
 document.getElementById('q').addEventListener('keydown', e=>{ if(e.key==='Enter') convert(); });
 
-/* ============== 英語辞書：variants + 3行解説 ============== */
-/* 主要TOP・ニックネームまで内蔵。必要に応じてこの形式で追記してください。 */
+/* ===== フランス語辞書（variants + 3行解説） ===== */
+/* まずは人気名＋通称をカバー。追加は同形式でOK。 */
 const db = {
-  /* —— 男性人気名 —— */
-  "liam":{variants:[["理亜夢","リアム"],["利阿武","リアム"]],
-    desc:{foreign:"🌐 Popular English/Irish male name (from Uilliam).",
-          extra:"✦ Short, strong sound; top charts in 2010s–2020s.",
-          jp:"日本語: 近年上位の男性名。短く力強い響き。"}},
-  "noah":{variants:[["乃亜","ノア"],["野亜","ノア"]],
-    desc:{foreign:"🌐 Biblical name meaning “rest/comfort.”",
-          extra:"✦ Hugely popular across English-speaking countries.",
-          jp:"日本語: 旧約聖書由来で「安らぎ」。現代でも大人気。"}},
-  "oliver":{variants:[["王利馬亜","オリバー"],["央利葉","オリバー"]],
-    desc:{foreign:"🌐 From Latin ‘olive’; classic yet trendy.",
-          extra:"✦ Connotes peace/olive tree.",
-          jp:"日本語: オリーブに由来。古典的で今も人気。"}},
-  "elijah":{variants:[["衣来蛇","イライジャ"],["依頼者","イライジャ"]],
-    desc:{foreign:"🌐 Hebrew origin; “My God is Yahweh.”",
-          extra:"✦ Often shortened to Eli.",
-          jp:"日本語: ヘブライ語起源。「わが神はヤハウェ」。愛称Eli。"}},
-  "james":{variants:[["寿恵武図","ジェームズ"],["自衛夢寿","ジェームズ"]],
-    desc:{foreign:"🌐 Classic form of Jacob (“supplanter”).",
-          extra:"✦ Royal & literary usage for centuries.",
-          jp:"日本語: ジェイコブ系の古典。王侯・文学に多い。"}},
-  "william":{variants:[["宇井利愛夢","ウィリアム"],["有利亜夢","ウィリアム"]],
-    desc:{foreign:"🌐 Germanic origin; “resolute protector.”",
-          extra:"✦ Borne by many kings; timeless prestige.",
-          jp:"日本語: 「強い守護者」。王族名として著名。"}},
-  "benjamin":{variants:[["弁者民","ベンジャミン"],["勉者民","ベンジャミン"]],
-    desc:{foreign:"🌐 Hebrew; “son of the right hand.”",
-          extra:"✦ Friendly vibe; Ben as short form.",
-          jp:"日本語: 「右手の子」。親しみやすくBenで通用。"}},
-  "lucas":{variants:[["流華須","ルーカス"],["留華寿","ルーカス"]],
-    desc:{foreign:"🌐 Latin/Greek roots related to Luke.",
-          extra:"✦ Luca/Luke variants popular too.",
-          jp:"日本語: ルカ/ルーク系の派生名。現代的。"}},
-  "henry":{variants:[["辺利","ヘンリー"],["遍理","ヘンリー"]],
-    desc:{foreign:"🌐 Germanic; “home ruler.”",
-          extra:"✦ Regal; used by many European kings.",
-          jp:"日本語: 「家の支配者」。欧州王侯の名。"}},
-  "alexander":{variants:[["亜礼久三太","アレクサンダー"],["亜連久三陀","アレクサンダー"]],
-    desc:{foreign:"🌐 Greek; “defender of men.”",
-          extra:"✦ Prestige via Alexander the Great.",
-          jp:"日本語: 「人々の守護者」。大王で著名。"}},
-  "mason":{variants:[["明孫","メイソン"],["盟尊","メイソン"]],
-    desc:{foreign:"🌐 Surname-turned-given name (“stone worker”).",
-          extra:"✦ Modern, sturdy American feel.",
-          jp:"日本語: 元は石工の姓。近年名として定着。"}},
-  "michael":{variants:[["舞家留","マイケル"],["真伊蹴","マイケル"]],
-    desc:{foreign:"🌐 “Who is like God?” (Hebrew).",
-          extra:"✦ Evergreen classic; Mike as nickname.",
-          jp:"日本語: 伝統的人気名。愛称Mike。"}},
-  "ethan":{variants:[["伊参","イーサン"],["慈参","イーサン"]],
-    desc:{foreign:"🌐 Hebrew; “firm, strong.”",
-          extra:"✦ Modern classic since 2000s.",
-          jp:"日本語: 「強固」。2000年代以降の定番。"}},
-  "daniel":{variants:[["檀衣流","ダニエル"],["打仁得流","ダニエル"]],
-    desc:{foreign:"🌐 “God is my judge.”",
-          extra:"✦ Dan/Danny as common forms.",
-          jp:"日本語: 「神はわが裁き主」。愛称Dan/Danny。"}},
-  "jacob":{variants:[["寿栄古武","ジェイコブ"],["自栄古武","ジェイコブ"]],
-    desc:{foreign:"🌐 Hebrew; traditionally “supplanter.”",
-          extra:"✦ Dominated US rankings in 2000s.",
-          jp:"日本語: 2000年代の首位常連。古典×現代性。"}},
-  "logan":{variants:[["朗眼","ローガン"],["魯眼","ローガン"]],
-    desc:{foreign:"🌐 Scottish surname origin.",
-          extra:"✦ Strong cinematic vibe (Wolverine).",
-          jp:"日本語: スコットランド姓発祥。力強い印象。"}},
-  "jackson":{variants:[["若久尊","ジャクソン"],["実音尊","ジャクソン"]],
-    desc:{foreign:"🌐 “son of Jack”; surname used as first name.",
-          extra:"✦ Cool modern US choice; Jax for short.",
-          jp:"日本語: Jackの子の意。現代米国で人気。"}},
-  "levi":{variants:[["利倍","リーバイ"],["礼倍","リーバイ"]],
-    desc:{foreign:"🌐 Hebrew; “joined/attached.”",
-          extra:"✦ Simple, stylish biblical revival.",
-          jp:"日本語: 簡潔おしゃれな聖書名として復権。"}},
-  "sebastian":{variants:[["成羽好地案","セバスチャン"],["世抜志庵","セバスチャン"]],
-    desc:{foreign:"🌐 Latin/Greek; linked to St. Sebastian.",
-          extra:"✦ Elegant continental flair; Seb.",
-          jp:"日本語: 上品で欧風。愛称Seb。"}},
-  "mateo":{variants:[["真帝王","マテオ"],["魔帝央","マテオ"]],
-    desc:{foreign:"🌐 Spanish form of Matthew (“gift of God”).",
-          extra:"✦ Rising fast in US charts.",
-          jp:"日本語: マシューの西語形。近年急上昇。"}},
-  "jack":{variants:[["若久","ジャック"],["寿悪","ジャック"]],
-    desc:{foreign:"🌐 Diminutive of John; now standalone classic.",
-          extra:"✦ Friendly timeless choice.",
-          jp:"日本語: 元はJohnの短縮。独立名として定着。"}},
-  "owen":{variants:[["王縁","オーウェン"],["桜縁","オーウェン"]],
-    desc:{foreign:"🌐 Welsh; “noble-born/young warrior.”",
-          extra:"✦ Gentle yet strong vibe.",
-          jp:"日本語: ウェールズ系。柔らかさと強さ。"}},
-  "theodore":{variants:[["世緒堂","セオドア"],["瀬尾堂","セオドア"]],
-    desc:{foreign:"🌐 Greek; “gift of God.”",
-          extra:"✦ Vintage comeback; Theo/Teddy.",
-          jp:"日本語: 「神の賜物」。Theo/Teddyが愛称。"}},
-  "aiden":{variants:[["永伝","エイデン"],["愛伝","エイデン"]],
-    desc:{foreign:"🌐 Irish (Aodhán); fiery meaning.",
-          extra:"✦ 2000sに急伸したモダン名。",
-          jp:"日本語: アイルランド系。「炎」に由来。"}},
-  "samuel":{variants:[["寿美由留","サミュエル"],["佐美憂流","サミュエル"]],
-    desc:{foreign:"🌐 “heard by God.”",
-          extra:"✦ Warm, steady classic; Sam.",
-          jp:"日本語: 温かみのある古典。愛称Sam。"}},
+  /* —— 男性 —— */
+  "louis": {variants:[["瑠偉","ルイ"],["流位","ルイ"]],
+    desc:{foreign:"🌐 Prénom royal français, forme de Louis.",
+          extra:"✦ Porté par plusieurs rois de France; classique intemporel.",
+          jp:"日本語: フランスの王名として有名な伝統的男性名。"}},
+  "gabriel": {variants:[["雅美礼","ガブリエル"],["雅武礼","ガブリエル"]],
+    desc:{foreign:"🌐 D’origine hébraïque : « force de Dieu ».",
+          extra:"✦ Très courant en France; Gabi/Gab en diminutif.",
+          jp:"日本語: ヘブライ語で「神の力」。フランスで非常に一般的。"}},
+  "jules": {variants:[["寿琉","ジュール"],["樹琉","ジュール"]],
+    desc:{foreign:"🌐 Forme française de Julius.",
+          extra:"✦ Chic et littéraire; image classique.",
+          jp:"日本語: ユリウス由来の仏語形。上品で文芸的な印象。"}},
+  "arthur": {variants:[["亜斗留","アルチュール"],["亜留斗","アルチュール"]],
+    desc:{foreign:"🌐 D’origine celtique; lié à la légende du roi Arthur.",
+          extra:"✦ Très populaire; son noble et héroïque.",
+          jp:"日本語: ケルト起源。アーサー王伝説に結びつく高貴な響き。"}},
+  "hugo": {variants:[["友護","ユーゴ"],["悠護","ユーゴ"]],
+    desc:{foreign:"🌐 Forme germanique de « esprit/âme ».",
+          extra:"✦ Court et moderne; associé à Victor Hugo.",
+          jp:"日本語: ゲルマン系。短くモダン。文豪ヴィクトル・ユゴーでも有名。"}},
+  "léo": {variants:[["令雄","レオ"],["怜雄","レオ"]],
+    desc:{foreign:"🌐 Dérivé de « lion ».",
+          extra:"✦ Prénom court, énergique; très en vogue.",
+          jp:"日本語: ラテン語で「ライオン」。短く力強い人気名。"}},
+  "raphaël": {variants:[["羅破恵留","ラファエル"],["羅羽恵留","ラファエル"]],
+    desc:{foreign:"🌐 Hébreu : « Dieu guérit ».",
+          extra:"✦ Appelé Raph/ Rafa; artistique et classique.",
+          jp:"日本語: 「神は癒す」。芸術的で古典的な響き。"}},
+  "nathan": {variants:[["那端","ナタン"],["那譚","ナタン"]],
+    desc:{foreign:"🌐 Hébreu : « il a donné ».",
+          extra:"✦ Sobre et moderne; fréquent en France.",
+          jp:"日本語: ヘブライ語で「与えられた」。落ち着いた現代名。"}},
 
-  /* —— 女性人気名 —— */
-  "olivia":{variants:[["王利日亜","オリビア"],["央利美亜","オリビア"]],
-    desc:{foreign:"🌐 Linked to “olive/peace.”",
-          extra:"✦ Top-ranking modern favorite.",
-          jp:"日本語: オリーブ＝平和の象徴に由来。筆頭人気。"}},
-  "emma":{variants:[["絵真","エマ"],["恵舞","エマ"]],
-    desc:{foreign:"🌐 Germanic roots; short elegant classic.",
-          extra:"✦ Consistently popular for decades.",
-          jp:"日本語: 端的で上品な古典。安定人気。"}},
-  "amelia":{variants:[["亜芽莉亜","アメリア"],["天芽理亜","アメリア"]],
-    desc:{foreign:"🌐 Mix of Germanic elements; industrious sense.",
-          extra:"✦ Vintage charm + modern appeal.",
-          jp:"日本語: 勤勉イメージの古風×現代的な名。"}},
-  "ava":{variants:[["永羽","エイヴァ"],["愛羽","エイヴァ"]],
-    desc:{foreign:"🌐 Short modern favorite; multiple roots.",
-          extra:"✦ Minimal & stylish.",
-          jp:"日本語: 短く洗練。語源諸説。"}},
-  "sophia":{variants:[["素麸衣亜","ソフィア"],["素妃亜","ソフィア"]],
-    desc:{foreign:"🌐 Greek; “wisdom.”",
-          extra:"✦ Sophie/Sofia variants worldwide.",
-          jp:"日本語: 「知恵」。各国で愛される名。"}},
-  "isabella":{variants:[["衣座美良","イザベラ"],["伊座倍羅","イザベラ"]],
-    desc:{foreign:"🌐 Latin form of Elizabeth; “pledged to God.”",
-          extra:"✦ Romantic, regal; Bella.",
-          jp:"日本語: エリザベス系。気品ある響き。愛称Bella。"}},
-  "mia":{variants:[["美亜","ミア"],["実愛","ミア"]],
-    desc:{foreign:"🌐 Short international name; “mine.”",
-          extra:"✦ Compact & sweet.",
-          jp:"日本語: 各国で通用する短名。甘い響き。"}},
-  "evelyn":{variants:[["永布鈴","エヴリン"],["恵布琳","エヴリン"]],
-    desc:{foreign:"🌐 Old English roots; revived vintage.",
-          extra:"✦ Evie/Eve nicknames.",
-          jp:"日本語: ヴィンテージ回帰で復権。Evie/Eve。"}},
-  "harper":{variants:[["葉波","ハーパー"],["波羽","ハーパー"]],
-    desc:{foreign:"🌐 Surname-based name (“harp player”).",
-          extra:"✦ Modern unisex trend.",
-          jp:"日本語: ハープ奏者の姓由来。現代的。"}},
-  "luna":{variants:[["瑠奈","ルナ"],["留菜","ルナ"]],
-    desc:{foreign:"🌐 Latin for “moon.”",
-          extra:"✦ Mystical yet friendly.",
-          jp:"日本語: ラテン語で“月”。神秘的。"}},
-  "camila":{variants:[["花美羅","カミラ"],["香美良","カミラ"]],
-    desc:{foreign:"🌐 Spanish/Portuguese form of Camilla.",
-          extra:"✦ Popular in the Americas.",
-          jp:"日本語: ラテン系の女性名。米州で人気。"}},
-  "gianna":{variants:[["慈安奈","ジアナ"],["自安菜","ジアナ"]],
-    desc:{foreign:"🌐 Italian; “God is gracious.”",
-          extra:"✦ Soft yet vivid sound.",
-          jp:"日本語: 「神の恵み」。柔らかく印象的。"}},
-  "elizabeth":{variants:[["栄利座辺寿","エリザベス"],["衣利座美寿","エリザベス"]],
-    desc:{foreign:"🌐 Hebrew via Greek/Latin; “pledged to God.”",
-          extra:"✦ Endless nicknames (Liz, Beth…).",
-          jp:"日本語: 変化形・愛称が豊富な伝統名。"}},
-  "eleanor":{variants:[["恵麗乃亜","エレノア"],["衣麗野亜","エレノア"]],
-    desc:{foreign:"🌐 Provençal/Greek roots; noble elegance.",
-          extra:"✦ Ellie/Nora as short forms.",
-          jp:"日本語: 上品で歴史的。Ellie/Noraあり。"}},
-  "ella":{variants:[["絵良","エラ"],["恵羅","エラ"]],
-    desc:{foreign:"🌐 Short form from —ella names.",
-          extra:"✦ Simple, airy, melodic.",
-          jp:"日本語: 端的で軽やか。多言語で親しまれる。"}},
-  "abigail":{variants:[["亜美芸流","アビゲイル"],["安美芸留","アビゲイル"]],
-    desc:{foreign:"🌐 Hebrew; “father’s joy.”",
-          extra:"✦ Abby is common nickname.",
-          jp:"日本語: 「父の喜び」。愛称Abby。"}},
-  "sofia":{variants:[["早妃亜","ソフィア"],["蘇妃亜","ソフィア"]],
-    desc:{foreign:"🌐 Variant spelling of Sophia.",
-          extra:"✦ Very popular in Europe/LatAm.",
-          jp:"日本語: Sophiaの別綴り。同じく「知恵」。"}},
-  "avery":{variants:[["永舞利","エイブリー"],["愛舞理","エイブリー"]],
-    desc:{foreign:"🌐 From Alfred/Aelfric; unisex modern.",
-          extra:"✦ Smooth contemporary feel.",
-          jp:"日本語: 近年の中性名。滑らかで現代的。"}},
-  "scarlett":{variants:[["好華亜烈都","スカーレット"],["紅麗都","スカーレット"]],
-    desc:{foreign:"🌐 Word-name → vivid red.",
-          extra:"✦ Dramatic, glamorous image.",
-          jp:"日本語: 深紅を指す語に由来。華やか。"}},
-  "emily":{variants:[["恵美里","エミリー"],["絵美莉","エミリー"]],
-    desc:{foreign:"🌐 From Aemilia; enduring favorite.",
-          extra:"✦ Intelligent, friendly image.",
-          jp:"日本語: 長年人気。知的で親しみやすい。"}},
-  "aria":{variants:[["亜莉亜","アリア"],["愛莉亜","アリア"]],
-    desc:{foreign:"🌐 Italian musical term; also Hebrew “lioness.”",
-          extra:"✦ Musical, airy resonance.",
-          jp:"日本語: 音楽用語アリアに由来。軽やか。"}},
-  "chloe":{variants:[["久路恵","クロエ"],["黒江","クロエ"]],
-    desc:{foreign:"🌐 Greek; “green shoot/blooming.”",
-          extra:"✦ Fashionable yet classical.",
-          jp:"日本語: 「芽吹き」の意。洒脱で古典的。"}},
-  "grace":{variants:[["倶麗寿","グレース"],["群麗須","グレース"]],
-    desc:{foreign:"🌐 Virtue name meaning grace/favor.",
-          extra:"✦ Elegant, timeless simplicity.",
-          jp:"日本語: 優雅・恩寵の徳目名。端正。"}},
-  "ellie":{variants:[["恵莉","エリー"],["絵梨","エリー"]],
-    desc:{foreign:"🌐 Pet form of Eleanor/Ellen; now independent.",
-          extra:"✦ Bright, friendly feel.",
-          jp:"日本語: エレノア等の愛称だが独立名としても普及。"}},
-  "nora":{variants:[["乃良","ノーラ"],["野良","ノーラ"]],
-    desc:{foreign:"🌐 Short of Honora/Eleanora; “light/honor.”",
-          extra:"✦ Vintage charm revived.",
-          jp:"日本語: 古風な魅力が復活中。"}},
-
-  /* —— よく使う一般名＆ニックネーム —— */
-  "tom":{variants:[["富夢","トム"]],
-    desc:{foreign:"🌐 Short form of Thomas; also used independently.",
-          extra:"✦ Friendly, globally recognized.",
-          jp:"日本語: トーマスの短縮形だが独立名としても一般的。"}},
-  "thomas":{variants:[["登真須","トーマス"],["当真志","トーマス"]],
-    desc:{foreign:"🌐 Aramaic origin; “twin.”",
-          extra:"✦ Classic across English-speaking world.",
-          jp:"日本語: アラム語で「双子」。伝統名。"}},
-  "mike":{variants:[["舞家留","マイク"],["真伊句","マイク"]],
-    desc:{foreign:"🌐 Nickname of Michael.",
-          extra:"✦ Casual and friendly tone.",
-          jp:"日本語: Michaelの愛称。親しみやすい。"}},
-  "joseph":{variants:[["常世布","ジョセフ"],["譲世布","ジョセフ"]],
-    desc:{foreign:"🌐 Hebrew; “He will add.”",
-          extra:"✦ Joe/Joey as common short forms.",
-          jp:"日本語: 聖書名。愛称Joe/Joeyで広い。"}},
-  "joe":{variants:[["常","ジョー"]],
-    desc:{foreign:"🌐 Short form of Joseph.",
-          extra:"✦ Easygoing, everyday vibe.",
-          jp:"日本語: Josephの短縮。気さくな印象。"}},
-  "robert":{variants:[["郎倍斗","ロバート"],["路伯斗","ロバート"]],
-    desc:{foreign:"🌐 Germanic; “bright fame.”",
-          extra:"✦ Bob/Rob as nicknames.",
-          jp:"日本語: 「輝く名声」。愛称Bob/Rob。"}},
-  "bob":{variants:[["坊","ボブ"]],
-    desc:{foreign:"🌐 Nickname of Robert.",
-          extra:"✦ Friendly, compact form.",
-          jp:"日本語: Robertの愛称。短く親しみやすい。"}},
-  "rob":{variants:[["路武","ロブ"]],
-    desc:{foreign:"🌐 Short form of Robert.",
-          extra:"✦ Sporty, brisk sound.",
-          jp:"日本語: Robertの短縮。軽快。"}},
-  "charles":{variants:[["茶瑠図","チャールズ"],["茶琉寿","チャールズ"]],
-    desc:{foreign:"🌐 Germanic; “free man.”",
-          extra:"✦ Regal and scholarly associations.",
-          jp:"日本語: 自由人の意。王侯の名として著名。"}},
-  "charlie":{variants:[["茶利","チャーリー"]],
-    desc:{foreign:"🌐 Diminutive of Charles; now unisex.",
-          extra:"✦ Playful, friendly image.",
-          jp:"日本語: Charlesの愛称。男女名としても使用。"}},
-  "chuck":{variants:[["着","チャック"]],
-    desc:{foreign:"🌐 Informal nickname of Charles.",
-          extra:"✦ Casual American flavor.",
-          jp:"日本語: Charlesの俗称的愛称。砕けた印象。"}},
-  "matthew":{variants:[["真忠","マシュー"],["待秀","マシュー"]],
-    desc:{foreign:"🌐 Hebrew; “gift of God.”",
-          extra:"✦ Matt as common short form.",
-          jp:"日本語: 神の贈り物の意。愛称Matt。"}},
-  "matt":{variants:[["待","マット"]],
-    desc:{foreign:"🌐 Short form of Matthew.",
-          extra:"✦ Punchy modern feel.",
-          jp:"日本語: Matthewの短縮。端的で現代的。"}},
-  "anthony":{variants:[["安登仁","アンソニー"],["庵蘇仁","アンソニー"]],
-    desc:{foreign:"🌐 Latin origin; Roman family name.",
-          extra:"✦ Tony as familiar nickname.",
-          jp:"日本語: ローマ系起源。愛称Tony。"}},
-  "tony":{variants:[["登仁","トニー"]],
-    desc:{foreign:"🌐 Nickname of Anthony.",
-          extra:"✦ Friendly, international.",
-          jp:"日本語: Anthonyの愛称。通じやすい。"}},
-  "andrew":{variants:[["安導流","アンドリュー"],["案土流","アンドリュー"]],
-    desc:{foreign:"🌐 Greek; “manly, brave.”",
-          extra:"✦ Andy as common short form.",
-          jp:"日本語: 「勇敢な男」。愛称Andy。"}},
-  "andy":{variants:[["安利","アンディ"]],
-    desc:{foreign:"🌐 Short form of Andrew.",
-          extra:"✦ Friendly and informal.",
-          jp:"日本語: Andrewの短縮。親しみやすい。"}},
-  "david":{variants:[["大微土","デイビッド"],["大備人","デイビッド"]],
-    desc:{foreign:"🌐 Hebrew; “beloved.”",
-          extra:"✦ Historic and widely used.",
-          jp:"日本語: 「愛される者」。広く用いられる。"}},
-  "dan":{variants:[["断","ダン"]],
-    desc:{foreign:"🌐 Short form of Daniel.",
-          extra:"✦ Crisp, direct sound.",
-          jp:"日本語: Danielの短縮。歯切れ良い響き。"}},
-  "dave":{variants:[["大部","デイブ"]],
-    desc:{foreign:"🌐 Nickname of David.",
-          extra:"✦ Casual, friendly tone.",
-          jp:"日本語: Davidの愛称。くだけた親しみ。"}},
-  "milo":{variants:[["魅朗","マイロ"],["美路","マイロ"]],
-    desc:{foreign:"🌐 Latin/Slavic roots; friendly modern sound.",
-          extra:"✦ Short, stylish; rising fast.",
-          jp:"日本語: 近年伸びる短名。軽快で親しみやすい。"}},
-  "john":{variants:[["常治","ジョン"],["丈司","ジョン"]],
-    desc:{foreign:"🌐 Hebrew; “God is gracious.”",
-          extra:"✦ Foundational classic; countless bearers.",
-          jp:"日本語: 伝統的な古典名。著名人に非常に多い。"}}
+  /* —— 女性 —— */
+  "louise": {variants:[["瑠依世","ルイーズ"],["類伊寿","ルイーズ"]],
+    desc:{foreign:"🌐 Féminin de Louis; classique élégant.",
+          extra:"✦ Très prisé en France; douceur traditionnelle.",
+          jp:"日本語: ルイの女性形。上品で伝統的な人気名。"}},
+  "emma": {variants:[["絵真","エマ"],["恵舞","エマ"]],
+    desc:{foreign:"🌐 Court, élégant; racines germaniques.",
+          extra:"✦ Indémodable et international.",
+          jp:"日本語: 端的で上品。各国で長年の人気。"}},
+  "jade": {variants:[["翠玉","ジェイド"],["若玉","ジェイド"]],
+    desc:{foreign:"🌐 Prénom-mot venant de la pierre « jade ».",
+          extra:"✦ Image de pureté et de chance.",
+          jp:"日本語: 宝石の翡翠（ジェイド）に由来。清らかで縁起の良い印象。"}},
+  "alice": {variants:[["亜莉素","アリス"],["愛莉素","アリス"]],
+    desc:{foreign:"🌐 D’origine germanique : « noble ».",
+          extra:"✦ Littéraire, doux et lumineux.",
+          jp:"日本語: 「高貴」を意味。文芸的で柔らかな響き。"}},
+  "chloé": {variants:[["久路恵","クロエ"],["黒江","クロエ"]],
+    desc:{foreign:"🌐 Grec : « pousse verte / floraison ».",
+          extra:"✦ Très populaire en France depuis 2000s.",
+          jp:"日本語: 「芽吹き」。2000年代以降フランスで定番。"}},
+  "camille": {variants:[["華美流","カミーユ"],["花美留","カミーユ"]],
+    desc:{foreign:"🌐 Prénom épicène français (m/f).",
+          extra:"✦ Classique, artistique; Camille Claudel.",
+          jp:"日本語: 仏語の男女共用名。古典的で芸術的。"}},
+  "inès": {variants:[["伊祢寿","イネス"],["衣祢寿","イネス"]],
+    desc:{foreign:"🌐 Forme française d’Inés (Agnès).",
+          extra:"✦ Élégant, avec l’accent grave caractéristique.",
+          jp:"日本語: アニェス由来の仏語形。気品のある響き。"}},
+  "léa": {variants:[["麗亜","レア"],["怜亜","レア"]],
+    desc:{foreign:"🌐 Variante de Leah.",
+          extra:"✦ Simple et lumineuse; très usitée.",
+          jp:"日本語: レア/レアー。シンプルで明るい印象。"}},
+  "manon": {variants:[["真乃","マノン"],["愛乃","マノン"]],
+    desc:{foreign:"🌐 Diminutif français de Marie.",
+          extra:"✦ Typiquement français; doux et familier.",
+          jp:"日本語: マリーの仏語愛称形。可憐で親しみやすい。"}}
 };
 
-/* ============== エイリアス ============== */
+/* —— よくある愛称・綴り差 —— */
 const aliases = {
-  "will":"william","bill":"william","billy":"william",
-  "mike":"mike","mikey":"mike",
-  "tommy":"thomas",
-  "joe":"joe","joey":"joseph",
-  "bob":"bob","rob":"robert","robby":"robert","bobby":"robert",
-  "charlie":"charlie","chuck":"charles",
-  "matt":"matt","tony":"tony","andy":"andy",
-  "dan":"dan","dave":"dave",
-  "liz":"elizabeth","beth":"elizabeth","eliza":"elizabeth",
-  "bella":"isabella","kate":"katherine","katie":"katherine","kat":"katherine",
-  "abby":"abigail","ally":"abigail"
+  "leo":"léo","raph":"raphaël","rafa":"raphaël","théo":"théo","theo":"théo","seb":"sébastien","sebastien":"sébastien",
+  "agnes":"agnès","ines":"inès","lea":"léa","chloe":"chloé","manu":"emmanuel","nico":"nicolas","max":"maxime"
+  // 追加したい場合はここに {短い形: 正式表記} を追記
 };
 
-/* ============== 本体 ============== */
+/* ===== 本体 ===== */
 function convert(){
   const raw = document.getElementById('q').value;
-  let key = norm(raw);
-  if (!key){ out.textContent = "名前を入力してください。"; return; }
+  if (!raw){ out.textContent = "名前を入力してください。"; return; }
 
-  if (aliases[key]) key = aliases[key];
+  let key = norm(raw);
+  if (aliases[key]) key = norm(aliases[key]);
 
   const data = db[key];
   if (data){
@@ -374,7 +146,7 @@ function convert(){
     return;
   }
 
-  // サジェスト
+  // サジェスト（アクセント無視で部分一致）
   const cand = Object.keys(db).filter(k=>k.includes(key)).slice(0,12);
   out.innerHTML = `<div class="tips">まだ当て字が登録されていません。</div>
   ${cand.length?`<div class="suggest"><div class="tips" style="margin-top:8px">もしかして：</div>${cand.map(k=>`<a href="#" onclick="fill('${k}');return false;">${k}</a>`).join('')}</div>`:''}`;
@@ -385,12 +157,13 @@ function render(name, data){
     <div class="hit">${k} <span class="kana">（${ka}）</span>
       <button class="copybtn" onclick="navigator.clipboard&&navigator.clipboard.writeText('${k}（${ka}）')">コピー</button>
     </div>`).join('');
-  return `<div class="tips">「${escapeHtml(name)}」の候補 <span class="badge">EN</span></div>
+  return `<div class="tips">「${escapeHtml(name)}」の候補 <span class="badge">FR</span></div>
           ${list}
           <div class="desc-foreign">${data.desc.foreign}</div>
           <div class="tips">${data.desc.extra}</div>
           <div class="desc-jp">${data.desc.jp}</div>`;
 }
+
 function fill(name){ document.getElementById('q').value = name; convert(); }
 function escapeHtml(s){ return (s+"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 </script>
