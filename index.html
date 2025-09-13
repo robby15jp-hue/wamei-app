@@ -3,338 +3,142 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>当て字ジェネレーター | Français → Kanji (TOP50+10)</title>
+<title>当て字ジェネレーター | English → Kanji</title>
 <style>
   :root{--bg:#fafafa;--card:#fff;--text:#222;--muted:#666;--line:#e5e7eb;--p:#4f46e5}
-  *{box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);margin:0}
-  .app{max-width:900px;margin:0 auto;padding:20px}
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);margin:0}
+  .app{max-width:940px;margin:0 auto;padding:20px}
   h1{font-size:22px;margin:6px 0 14px}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
   input,button{font-size:16px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
   input{flex:1;min-width:280px}
-  button{background:var(--p);color:#fff;border:none}
+  button{background:var(--p);color:#fff;border:none;cursor:pointer}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:14px}
   .hit{font-size:22px;line-height:1.25;margin:8px 0}
   .kana{margin-left:6px;color:#666;font-size:14px}
-  .copybtn{font-size:12px;padding:6px 8px;margin-left:8px;border:1px solid var(--line);background:#fff;color:#333;border-radius:8px}
+  .copybtn{font-size:12px;padding:6px 8px;margin-left:8px;border:1px solid var(--line);background:#fff;color:#333;border-radius:8px;cursor:pointer}
   .tips{color:#666;font-size:14px}
   .desc-foreign{color:#2563eb;font-weight:bold;margin:6px 0 2px}
   .desc-jp{color:#555;margin:0 0 8px}
   .badge{display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:#666}
   .suggest a{display:inline-block;margin:4px 6px 0 0;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:#333;text-decoration:none}
+  hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
   footer{color:#777;font-size:12px;margin-top:18px}
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>フランス語の名前／姓 → 当て字変換（FR only, accent-insensitive）</h1>
-  <p class="desc-foreign">🌐 Entrez un prénom ou un nom français (ex : Olivia, Guillaume, Chloé, Martin, Guillon). Insensible à la casse et aux accents.</p>
-  <p class="desc-jp">フランス語の名前または姓を入力してください（例：オリヴィア／ギヨーム／クロエ／マルタン／ギュイヨン）。大文字小文字・アクセントの有無を区別しません。</p>
+  <h1>英語名／姓 → 当て字変換</h1>
+  <p class="desc-foreign">🌐 Enter an English first/last name (ex: William, Tom, Bill Gates). Case-insensitive.</p>
+  <p class="desc-jp">英語の名前または姓を入力してください（例：ウィリアム／トム／Bill Gates）。大文字小文字は区別しません。</p>
 
   <div class="row">
-    <input id="q" placeholder="Prénom / Nom (ex: Olivia / Guillaume / Chloé / Martin / Guillon)" autocomplete="off">
+    <input id="q" placeholder="Name / Full name (ex: William / Tom / Bill Gates)" autocomplete="off">
     <button id="go">変換</button>
   </div>
 
-  <div id="out" class="card">準備OK。人気TOP名（男女）＋代表的姓10件を収録。例：Olivia / Emma / Juliette / Lucas / Léo / Arthur / Sébastien / Martin / Guillon …</div>
-  <footer>辞書は <code>db</code>、別名は <code>aliases</code> に追記。全件3行解説付き。</footer>
+  <div id="out" class="card">準備OK。William / Tom / Mike / Bill / Ken / Kent / “Bill Gates” などでテストしてください。</div>
+  <footer>辞書は <code>db</code>、別名は <code>aliases</code> に追記。フルネームは最大8語まで処理。</footer>
 </div>
 
 <script>
-/* ========= 正規化（小文字化＋アクセント除去） ========= */
-const deburr = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-const norm   = s => deburr(s).toLowerCase().trim();
-
-/* ========= 画面イベント ========= */
+/* ============= ユーティリティ ============= */
+const norm = s => (s||'').toLowerCase().trim();
+function escapeHtml(s){return (s+"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function copyText(t){navigator.clipboard?.writeText(t);}
 const out = document.getElementById('out');
 document.getElementById('go').addEventListener('click', convert);
 document.getElementById('q').addEventListener('keydown', e=>{ if(e.key==='Enter') convert(); });
 
-/* ========= データ：人気TOP50（男25＋女25）＋姓10 ========= */
-/* 構造：key: { variants: [[kanji,kana], ...],
-   desc: { foreign:"🌐 ...", extra:"✦ ...", jp:"日本語: ..." } } */
-
-/* —— 男性（25） —— */
-const male = {
-  "guillaume": {variants:[["義庵夢","ギヨーム"],["儀庵夢","ギヨーム"]],
-    desc:{foreign:"🌐 Forme française de William (« protecteur résolu »).",
-          extra:"✦ Classique français; diminutifs : Gui/Guigui.",
-          jp:"日本語: ウィリアムの仏語形。「強い守護者」の意で伝統名。"}},
-  "lucas": {variants:[["流華須","リュカ"],["留華寿","リュカ"]],
-    desc:{foreign:"🌐 Variante de Luke/Luca, lié à la lumière.",
-          extra:"✦ Très populaire en France depuis les années 2000.",
-          jp:"日本語: ルカ系の仏語形。光の意味合い。2000年代以降の定番。"}},
-  "enzo": {variants:[["炎蔵","エンゾ"],["縁蔵","エンゾ"]],
-    desc:{foreign:"🌐 Diminutif italien (Vincenzo/Lorenzo) adopté en France.",
-          extra:"✦ Court, énergique, très moderne.",
-          jp:"日本語: 伊語愛称が仏で一般化。短く力強い現代名。"}},
-  "theo": {variants:[["帝央","テオ"],["天央","テオ"]],
-    desc:{foreign:"🌐 Diminutif de Théodore (« don de Dieu »).",
-          extra:"✦ Graphies Théo/Theo; doux et court.",
-          jp:"日本語: テオドールの短縮。柔らかく短い響き。"}},
-  "raphael": {variants:[["羅破恵留","ラファエル"],["羅羽恵留","ラファエル"]],
-    desc:{foreign:"🌐 Hébreu : « Dieu guérit ».","extra":"✦ Raph/Rafa; artistique et classique.",
-          jp:"日本語: 「神は癒す」。芸術的で古典的。"}},
-  "leo": {variants:[["令雄","レオ"],["怜雄","レオ"]],
-    desc:{foreign:"🌐 Du latin « lion ».","extra":"✦ Prénom court et énergique, en vogue.",
-          jp:"日本語: ラテン語で「ライオン」。短く力強い。"}},
-  "arthur": {variants:[["亜斗留","アルチュール"],["亜留斗","アルチュール"]],
-    desc:{foreign:"🌐 D’origine celtique; lié au roi Arthur.",
-          extra:"✦ Noble, héroïque, littéraire.",
-          jp:"日本語: ケルト起源。アーサー王伝説で高貴な印象。"}},
-  "nathan": {variants:[["那端","ナタン"],["那譚","ナタン"]],
-    desc:{foreign:"🌐 Hébreu : « il a donné ».","extra":"✦ Moderne et sobre; très répandu.",
-          jp:"日本語: 「与えられた」。落ち着いた現代名。"}},
-  "gabriel": {variants:[["雅美礼","ガブリエル"],["雅武礼","ガブリエル"]],
-    desc:{foreign:"🌐 « Force de Dieu » (hébreu).",
-          extra:"✦ Très courant; Gabi/Gab en diminutif.",
-          jp:"日本語: 「神の力」。フランスで非常に一般的。"}},
-  "louis": {variants:[["瑠偉","ルイ"],["流位","ルイ"]],
-    desc:{foreign:"🌐 Prénom royal français (forme de Ludwig).",
-          extra:"✦ Porté par de nombreux rois de France.",
-          jp:"日本語: 仏王名として有名な伝統名。"}},
-  "jules": {variants:[["寿琉","ジュール"],["樹琉","ジュール"]],
-    desc:{foreign:"🌐 Forme française de Julius.",
-          extra:"✦ Chic et littéraire; image classique.",
-          jp:"日本語: ユリウス由来の仏語形。上品で文芸的。"}},
-  "hugo": {variants:[["友護","ユーゴ"],["悠護","ユーゴ"]],
-    desc:{foreign:"🌐 Germanique (esprit/âme).",
-          extra:"✦ Associé à Victor Hugo; court et moderne.",
-          jp:"日本語: ゲルマン系。文豪名で著名。短くモダン。"}},
-  "adam": {variants:[["安男","アダン"],["亜壇","アダン"]],
-    desc:{foreign:"🌐 Nom biblique; « homme/terre ».","extra":"✦ Universel, sobre et classique.",
-          jp:"日本語: 旧約の名。端正で普遍的。"}},
-  "maxime": {variants:[["真示夢","マクシム"],["真希夢","マクシム"]],
-    desc:{foreign:"🌐 Du latin « maximus » = « le plus grand ».","extra":"✦ Élégant; Max en diminutif.",
-          jp:"日本語: 「最大」。上品で愛称Max。"}},
-  "nicolas": {variants:[["仁虎羅","ニコラ"],["仁己羅","ニコラ"]],
-    desc:{foreign:"🌐 Grec « victoire du peuple » (Nikolaos).",
-          extra:"✦ Diminutif : Nico; très répandu.",
-          jp:"日本語: 『民の勝利』。愛称Nicoで一般的。"}},
-  "antoine": {variants:[["安登院","アントワヌ"],["安都院","アントワヌ"]],
-    desc:{foreign:"🌐 Forme française d’Antonius.",
-          extra:"✦ Classique et raffiné; Tony familier.",
-          jp:"日本語: 古典的で上品。愛称Tony。"}},
-  "mathieu": {variants:[["真忠","マチュー"],["待秀","マチュー"]],
-    desc:{foreign:"🌐 Forme de Matthieu (« don de Dieu »).",
-          extra:"✦ Très courant; variantes : Matthieu/Mathias.",
-          jp:"日本語: マタイ由来。「神の賜物」。"}},
-  "victor": {variants:[["微斗亜","ヴィクトル"],["備斗亜","ヴィクトル"]],
-    desc:{foreign:"🌐 Latin : « vainqueur ».","extra":"✦ Classique, littéraire (Victor Hugo).",
-          jp:"日本語: 『勝者』。文芸イメージも強い。"}},
-  "paul": {variants:[["保留","ポール"],["普留","ポール"]],
-    desc:{foreign:"🌐 Latin « petit/humble »; apôtre célèbre.",
-          extra:"✦ Sobre, international, intemporel.",
-          jp:"日本語: 謙虚を意味。国際的な古典名。"}},
-  "alexandre": {variants:[["亜連山土","アレクサンドル"],["亜励久山土","アレクサンドル"]],
-    desc:{foreign:"🌐 Grec : « défenseur des hommes ».","extra":"✦ Prestige historique; Alex en courant.",
-          jp:"日本語: 「人々の守護者」。歴史的威光。"}},
-  "clement": {variants:[["久礼文","クレマン"],["倶礼文","クレマン"]],
-    desc:{foreign:"🌐 Latin « clément, doux ».","extra":"✦ Aimable, classique; Clément.",
-          jp:"日本語: 情け深い・温和の意。端正な古典名。"}},
-  "simon": {variants:[["志紋","シモン"],["思紋","シモン"]],
-    desc:{foreign:"🌐 Hébreu « il a entendu ».","extra":"✦ Biblique, simple et intemporel.",
-          jp:"日本語: 聖書名。「聞き入れられた」の意。"}},
-  "baptiste": {variants:[["抜智須","バティスト"],["抜地守","バティスト"]],
-    desc:{foreign:"🌐 « Baptiste » (Jean-Baptiste) d’origine grecque.",
-          extra:"✦ Très français; ton classique et religieux.",
-          jp:"日本語: 洗礼者に由来する仏ならではの名。"}},
-  "quentin": {variants:[["健廷","カンタン"],["兼廷","カンタン"]],
-    desc:{foreign:"🌐 Du latin « quintus » (cinquième).",
-          extra:"✦ Moderne, franc et net.",
-          jp:"日本語: ラテン語由来。現代的で端的な響き。"}},
-  "romain": {variants:[["露満","ロマン"],["魯満","ロマン"]],
-    desc:{foreign:"🌐 « Romain » = de Rome.",
-          extra:"✦ Culturel, littéraire; chaleureux.",
-          jp:"日本語: ローマの人。文化的で温かい響き。"}}
-};
-
-/* —— 女性（25） —— */
-const female = {
-  "olivia": {variants:[["央麗美亜","オリヴィア"],["王麗日亜","オリヴィア"]],
-    desc:{foreign:"🌐 Lié à « olivier/olive » = paix.",
-          extra:"✦ Très populaire; élégant et lumineux.",
-          jp:"日本語: オリーブ＝平和に由来。華やかな人気名。"}},
-  "emma": {variants:[["絵真","エマ"],["恵舞","エマ"]],
-    desc:{foreign:"🌐 Racines germaniques; court et élégant.",
-          extra:"✦ Indémodable et international.",
-          jp:"日本語: 端的で上品。各国で長年の人気。"}},
-  "jade": {variants:[["翠玉","ジェイド"],["若玉","ジェイド"]],
-    desc:{foreign:"🌐 Prénom-mot de la pierre « jade ».","extra":"✦ Pureté, chance; moderne et chic.",
-          jp:"日本語: 翡翠に由来。清らかで縁起良い。"}},
-  "alice": {variants:[["亜莉素","アリス"],["愛莉素","アリス"]],
-    desc:{foreign:"🌐 D’origine germanique « noble ».","extra":"✦ Littéraire, doux et lumineux.",
-          jp:"日本語: 「高貴」。文芸的で柔らかい響き。"}},
-  "chloe": {variants:[["久路恵","クロエ"],["黒江","クロエ"]],
-    desc:{foreign:"🌐 Grec « pousse verte/floraison ».","extra":"✦ Très prisé depuis les années 2000.",
-          jp:"日本語: 「芽吹き」。洒脱で古典的。"}},
-  "lina": {variants:[["莉奈","リナ"],["里菜","リナ"]],
-    desc:{foreign:"🌐 Multi-origines (arabe/latine/slave).",
-          extra:"✦ Court, international et lumineux.",
-          jp:"日本語: 複数起源の国際的短名。明るい印象。"}},
-  "rose": {variants:[["露世","ローズ"],["蘆世","ローズ"]],
-    desc:{foreign:"🌐 Nom de fleur « rose » (latin).",
-          extra:"✦ Classique, délicat, vintage chic.",
-          jp:"日本語: バラに由来。上品でクラシック。"}},
-  "anna": {variants:[["安奈","アンナ"],["杏奈","アンナ"]],
-    desc:{foreign:"🌐 Forme internationale d’Anne.",
-          extra:"✦ Très répandue en Europe.",
-          jp:"日本語: アンの国際形。欧州で広く普及。"}},
-  "mila": {variants:[["美羅","ミラ"],["魅羅","ミラ"]],
-    desc:{foreign:"🌐 Slave/latin; « aimable/miracle » (étym. variées).",
-          extra:"✦ Court, moderne, doux.",
-          jp:"日本語: 複数語源の短名。現代的で柔らかい。"}},
-  "mia": {variants:[["美亜","ミア"],["実愛","ミア"]],
-    desc:{foreign:"🌐 « mienne » (it./esp.) ou diminutif de Maria.",
-          extra:"✦ Compact et doux; très international.",
-          jp:"日本語: マリア系短縮。各国で親しまれる。"}},
-  "julia": {variants:[["珠莉亜","ジュリア"],["樹莉亜","ジュリア"]],
-    desc:{foreign:"🌐 Forme internationale de Julie/Julia.",
-          extra:"✦ Classique, clair et gracieux.",
-          jp:"日本語: ユリア/ジュリー系の国際形。上品。"}},
-  "ines": {variants:[["伊祢寿","イネス"],["衣祢寿","イネス"]],
-    desc:{foreign:"🌐 Forme d’Inés/Agnès.","extra":"✦ Son doux; accent grave souvent écrit « Inès ».","jp":"日本語: アニェス由来。気品のある響き。"}},
-  "lea": {variants:[["麗亜","レア"],["怜亜","レア"]],
-    desc:{foreign:"🌐 Variante de Leah.","extra":"✦ Simple, lumineuse, très usitée.",
-          jp:"日本語: レア。シンプルで明るい印象。"}},
-  "zoe": {variants:[["像愛","ゾエ"],["蔵愛","ゾエ"]],
-    desc:{foreign:"🌐 Grec « vie ».","extra":"✦ Court, vif, très moderne.",
-          jp:"日本語: 「生命」。短く印象的。"}},
-  "manon": {variants:[["真乃","マノン"],["愛乃","マノン"]],
-    desc:{foreign:"🌐 Diminutif français de Marie.",
-          extra:"✦ Typiquement français; familier et doux.",
-          jp:"日本語: マリーの仏語愛称形。可憐で親しみやすい。"}},
-  "camille": {variants:[["華美流","カミーユ"],["花美留","カミーユ"]],
-    desc:{foreign:"🌐 Prénom épicène (m/f) français.",
-          extra:"✦ Classique, artistique (Camille Claudel).",
-          jp:"日本語: 仏語の男女共用名。芸術的。"}},
-  "sarah": {variants:[["佐良","サラ"],["紗良","サラ"]],
-    desc:{foreign:"🌐 Hébreu « princesse ».","extra":"✦ International, classique et lumineux.",
-          jp:"日本語: 『王女』の意。国際的古典名。"}},
-  "juliette": {variants:[["寿麗手","ジュリエット"],["珠麗手","ジュリエット"]],
-    desc:{foreign:"🌐 Diminutif de Julie/Julia.",
-          extra:"✦ Romantique (Roméo & Juliette).",
-          jp:"日本語: ロマンチックな名。愛らしい。"}},
-  "agathe": {variants:[["亜雅手","アガット"],["阿雅手","アガット"]],
-    desc:{foreign:"🌐 Grec « bon, gentil » (agathos).",
-          extra:"✦ Vintage chic; son doux.",
-          jp:"日本語: 「善良」に由来。ヴィンテージ感。"}},
-  "jeanne": {variants:[["洒音","ジャンヌ"],["洒恩","ジャンヌ"]],
-    desc:{foreign:"🌐 Forme française de Johanna.",
-          extra:"✦ Historique (Jeanne d’Arc).",
-          jp:"日本語: ジャンヌ・ダルクで歴史的に著名。"}},
-  "lucie": {variants:[["瑠詩","ルシー"],["留詩","ルシー"]],
-    desc:{foreign:"🌐 Lié à la lumière (lux).",
-          extra:"✦ Clair, doux; très apprécié.",
-          jp:"日本語: 光に由来。明るく柔らかい。"}},
-  "elodie": {variants:[["恵露麗","エロディ"],["絵露麗","エロディ"]],
-    desc:{foreign:"🌐 Probable origine germano-celtique.",
-          extra:"✦ Mélodieux; 80–90年代に流行→安定。",
-          jp:"日本語: ゲルマン/ケルト系説。旋律的で可憐。"}},
-  "elise": {variants:[["恵理瀬","エリーズ"],["絵理瀬","エリーズ"]],
-    desc:{foreign:"🌐 Diminutif d’Élisabeth.",
-          extra:"✦ Élégant; chanson « Pour Elise » évoquée.",
-          jp:"日本語: エリザベートの短縮。上品で音楽的。"}},
-  "charlotte": {variants:[["洒羅斗手","シャルロット"],["紗羅斗手","シャルロット"]],
-    desc:{foreign:"🌐 Féminin de Charles (« homme libre »).",
-          extra:"✦ Royal, littéraire; très élégant.",
-          jp:"日本語: チャールズの女性形。気品ある人気名。"}},
-  "clara": {variants:[["倶良","クララ"],["久良","クララ"]],
-    desc:{foreign:"🌐 Latin « clair, lumineux ».","extra":"✦ Simple, pur; classique européen.",
-          jp:"日本語: 明るい・澄んだの意。欧州古典。"}},
-  "pauline": {variants:[["保麗音","ポーリーヌ"],["抱麗音","ポーリーヌ"]],
-    desc:{foreign:"🌐 Féminin de Paul.","extra":"✦ Doux, vintage chic; très français.",
-          jp:"日本語: ポールの女性形。上品なヴィンテージ感。"}};
-
-/* —— 姓（10） —— */
-const surnames = {
-  "martin": {variants:[["真亭","マルタン"],["真汀","マルタン"]],
-    desc:{foreign:"🌐 Très courant; du latin « Mars ».",
-          extra:"✦ Un des patronymes les plus répandus.",
-          jp:"日本語: 戦神マルス由来。仏で最も一般的な姓の一つ。"}},
-  "bernard": {variants:[["倍那土","ベルナール"],["弁那土","ベルナール"]],
-    desc:{foreign:"🌐 Germanique « ours fort/brave ».","extra":"✦ Nom et prénom; très répandu.",
-          jp:"日本語: 『強い熊』の意。姓・名で広く分布。"}},
-  "dupont": {variants:[["由本","デュポン"],["珠本","デュポン"]],
-    desc:{foreign:"🌐 « du pont » (près d’un pont).","extra":"✦ Symbole du patronyme moyen.",
-          jp:"日本語: 橋のそばの人。仏の代表的姓。"}},
-  "durand": {variants:[["由蘭","デュラン"],["受蘭","デュラン"]],
-    desc:{foreign:"🌐 Dérivé d’un ancien prénom germanique.",
-          extra:"✦ Fort ancrage national; nombreuses lignées.",
-          jp:"日本語: 古ゲルマン名に由来。全国的に多い。"}},
-  "moreau": {variants:[["毛朗","モロー"],["墨朗","モロー"]],
-    desc:{foreign:"🌐 Souvent lié à « brun/moreno ».","extra":"✦ Répandu dans l’ouest/centre.",
-          jp:"日本語: 褐色等の渾名起源とされる。西部〜中部で多い。"}},
-  "laurent": {variants:[["羅連","ローラン"],["麗連","ローラン"]],
-    desc:{foreign:"🌐 « Couronné de laurier ».","extra":"✦ Très répandu; aussi prénom.",
-          jp:"日本語: 月桂冠に由来。姓・名どちらにもあり。"}},
-  "girard": {variants:[["義羅土","ジラール"],["儀羅土","ジラール"]],
-    desc:{foreign:"🌐 Dérivé germanique (Gerhard).",
-          extra:"✦ Présent partout en France.",
-          jp:"日本語: ゲルマン系起源。全国で見られる。"}},
-  "roux": {variants:[["瑠久","ルー"],["楼","ルー"]],
-    desc:{foreign:"🌐 Surnom « roux » (cheveux) devenu patronyme.",
-          extra:"✦ Très courant dans le sud de la France.",
-          jp:"日本語: 赤毛の渾名が姓化。南仏で多い。"}},
-  "petit": {variants:[["小","プティ"],["小人","プティ"]],
-    desc:{foreign:"🌐 « petit » (de taille/affectueux).",
-          extra:"✦ Partout en France; sens familierも。",
-          jp:"日本語: 『小さい』に由来。親しみある渾名姓。"}},
-  "guillon": {variants:[["儀庵","ギュイヨン"],["求庵","ギュイヨン"]],
-    desc:{foreign:"🌐 Nom toponymique courant; variantes Guyon/Guion.",
-          extra:"✦ Présent dans plusieurs régions.",
-          jp:"日本語: 地名由来の一般的な姓。地域に広く分布。"}}
-};
-
-/* —— マスターDB —— */
-const db = {...male, ...female, ...surnames};
-
-/* —— エイリアス（アクセント差・短縮形・綴りゆれ） —— */
-const aliases = {
-  // アクセント無し→正規化キー（上で norm がアクセントを除去するので key は素の綴り）
-  "théo":"theo","léo":"leo","sébastien":"sebastien","émilie":"emilie","éloise":"eloise","élise":"elise","élodie":"elodie","chloé":"chloe","inès":"ines","léa":"lea","zoé":"zoe",
-  // ニックネーム・短縮
-  "raph":"raphael","rafa":"raphael","alex":"alexandre","max":"maxime","nico":"nicolas","tony":"antoine","matt":"mathieu","vic":"victor","ben":"benjamin","clem":"clement",
-  "julie":"julia","loulou":"louise","juju":"juliette","manu":"emmanuel","charly":"charlotte"
-  // 必要に応じて追記
-};
-
-/* ========= 変換本体 ========= */
-function convert(){
-  const raw = document.getElementById('q').value;
-  if (!raw){ out.textContent = "名前を入力してください。"; return; }
-
-  let key = norm(raw);
-  // エイリアス解決（別名→正規キー）
-  if (aliases[raw.toLowerCase()]) key = norm(aliases[raw.toLowerCase()]);
-  if (aliases[key]) key = norm(aliases[key]);
-
-  const data = db[key];
-  if (data){
-    out.innerHTML = render(key, data);
-    return;
-  }
-
-  // サジェスト（アクセント無視で部分一致）
-  const cand = Object.keys(db).filter(k=>k.includes(key)).slice(0,16);
-  out.innerHTML = `<div class="tips">まだ当て字が登録されていません。</div>
-  ${cand.length?`<div class="suggest"><div class="tips" style="margin-top:8px">もしかして：</div>${cand.map(k=>`<a href="#" onclick="fill('${k}');return false;">${k}</a>`).join('')}</div>`:''}`;
+/* ============= 無視語リスト（Jr., Mr., III…） ============= */
+const STOPWORDS = new Set([
+  "jr","sr","ii","iii","iv","v","vi",
+  "mr","mrs","ms","dr","prof",
+  "de","del","della","du","des","la","le","les","da","das","dos","di",
+  "van","von","der","den","ter","ten","op","af","al","bin","ibn","ben",
+  "the","and","of"
+]);
+function tokenize(raw){
+  let s = (raw||"").replace(/\u3000/g," ").replace(/\s+/g," ").trim();
+  s = s.replace(/[^A-Za-z\s]/g," ");
+  let parts = s.split(/\s+/).filter(Boolean);
+  return parts.filter(w=>!STOPWORDS.has(w.toLowerCase()));
 }
 
-function render(name, data){
-  const list = data.variants.map(([k,ka])=>`
-    <div class="hit">${k} <span class="kana">（${ka}）</span>
-      <button class="copybtn" onclick="navigator.clipboard&&navigator.clipboard.writeText('${k}（${ka}）')">コピー</button>
-    </div>`).join('');
-  return `<div class="tips">「${escapeHtml(name)}」の候補 <span class="badge">FR</span></div>
+/* ============= 当て字データ ============= */
+const db = {
+  "william":{variants:[["宇井利愛夢","ウィリアム"]],desc:{foreign:"🌐 Germanic; “resolute protector.”",extra:"✦ Borne by many kings.",jp:"日本語: 強い守護者。王侯名として著名。"}},
+  "tom":{variants:[["富夢","トム"]],desc:{foreign:"🌐 Short form of Thomas; also independent.",extra:"✦ Friendly, global.",jp:"日本語: トーマスの短縮だが独立名としても普及。"}},
+  "bill":{variants:[["美留","ビル"]],desc:{foreign:"🌐 Nickname of William; also standalone.",extra:"✦ Very common US/UK.",jp:"日本語: Williamの愛称。単体名としても使用。"}},
+  "kenneth":{variants:[["健奈須","ケネス"]],desc:{foreign:"🌐 English/Scottish given name.",extra:"✦ Often shortened to Ken.",jp:"日本語: 英語/スコットランド系。"}},
+  "ken":{variants:[["健","ケン"]],desc:{foreign:"🌐 Short form of Kenneth; independent too.",extra:"✦ Crisp, international.",jp:"日本語: Kennethの短縮。独立名としても一般的。"}},
+  "kent":{variants:[["健斗","ケント"]],desc:{foreign:"🌐 Given name/surname; also UK county.",extra:"✦ Modern, brisk.",jp:"日本語: 名/姓両方にある。軽快。"}},
+  "steve":{variants:[["捨威","スティーブ"]],desc:{foreign:"🌐 Short form of Steven/Stephen.",extra:"✦ Friendly impression.",jp:"日本語: Stevenの愛称。親しみやすい。"}},
+  "john":{variants:[["常治","ジョン"]],desc:{foreign:"🌐 Hebrew; “God is gracious.”",extra:"✦ Foundational classic.",jp:"日本語: 伝統的古典名。著名人多数。"}},
+  "mike":{variants:[["舞家留","マイク"]],desc:{foreign:"🌐 Nickname of Michael.",extra:"✦ Casual tone.",jp:"日本語: Michaelの愛称。"}},
+  "charles":{variants:[["茶瑠図","チャールズ"]],desc:{foreign:"🌐 Germanic; “free man.”",extra:"✦ Regal name.",jp:"日本語: 自由人の意。"}},
+  "elizabeth":{variants:[["栄利座辺寿","エリザベス"]],desc:{foreign:"🌐 “pledged to God.”",extra:"✦ Many nicknames.",jp:"日本語: 神に捧げられた。愛称多数。"}},
+  "sophia":{variants:[["素麸衣亜","ソフィア"]],desc:{foreign:"🌐 Greek; “wisdom.”",extra:"✦ Global popularity.",jp:"日本語: 知恵の意。"}},
+  "scarlett":{variants:[["好華亜烈都","スカーレット"]],desc:{foreign:"🌐 Word-name (red).",extra:"✦ Glamorous.",jp:"日本語: 深紅を指す。華やか。"}},
+  "gates":{variants:[["芸津","ゲイツ"]],desc:{foreign:"🌐 English surname.",extra:"✦ Known via Bill Gates.",jp:"日本語: 英語の姓。ビル・ゲイツで著名。"}},
+  "smith":{variants:[["寿見酢","スミス"]],desc:{foreign:"🌐 Occupational surname.",extra:"✦ Most common in US/UK.",jp:"日本語: 鍛冶屋由来。"}},
+  "johnson":{variants:[["実音尊","ジョンソン"]],desc:{foreign:"🌐 “son of John.”",extra:"✦ Very common surname.",jp:"日本語: Johnの子。"}}
+};
+
+/* ============= エイリアス（ニックネーム対応） ============= */
+const aliases = {
+  "will":"william","willy":"william","billy":"bill",
+  "steven":"steve","stephen":"steve",
+  "tommy":"tom","thomas":"tom",
+  "mikey":"mike",
+  "charlie":"charles","chuck":"charles",
+  "liz":"elizabeth","beth":"elizabeth",
+  "sophie":"sophia","sofia":"sophia",
+  "kenny":"kenneth"
+};
+
+/* ============= 本体処理 ============= */
+function convert(){
+  const raw = document.getElementById('q').value||"";
+  const parts = tokenize(raw);
+  if(!parts.length){ out.textContent="名前を入力してください。"; return; }
+
+  const MAX_TOKENS=8;
+  const capped=parts.slice(0,MAX_TOKENS);
+  const truncated=parts.length>MAX_TOKENS?parts.length-MAX_TOKENS:0;
+
+  const blocks=capped.map(token=>lookupOne(token));
+  const html=blocks.map((r,i)=>(i?'<hr class="sep">':'')+r.html).join('');
+  out.innerHTML=html+(truncated?`<div class="tips">※ 長文のため先頭${MAX_TOKENS}語のみ処理（残り${truncated}語）。短く入力してください。</div>`:"");
+}
+
+function lookupOne(token){
+  const keyOriginal=token;
+  let key=norm(token);
+  if(aliases[keyOriginal.toLowerCase()]) key=norm(aliases[keyOriginal.toLowerCase()]);
+  if(aliases[key]) key=norm(aliases[key]);
+
+  const data=db[key];
+  if(data){ return {hit:true,html:render(keyOriginal,data)}; }
+
+  const cand=Object.keys(db).filter(k=>k.includes(key)).slice(0,8);
+  const suggestHtml=`<div class="tips">「${escapeHtml(keyOriginal)}」はまだ登録されていません。</div>${
+    cand.length?`<div class="suggest"><div class="tips">もしかして：</div>${cand.map(k=>`<a href="#" onclick="fill('${k}');return false;">${k}</a>`).join('')}</div>`:''}`;
+  return {hit:false,html:suggestHtml};
+}
+
+function render(name,data){
+  const list=data.variants.map(([k,ka])=>
+    `<div class="hit">${k} <span class="kana">（${ka}）</span>
+      <button class="copybtn" onclick="copyText('${k}（${ka}）')">コピー</button></div>`).join('');
+  return `<div class="tips">「${escapeHtml(name)}」の候補 <span class="badge">EN</span></div>
           ${list}
           <div class="desc-foreign">${data.desc.foreign}</div>
           <div class="tips">${data.desc.extra}</div>
           <div class="desc-jp">${data.desc.jp}</div>`;
 }
-
-function fill(name){ document.getElementById('q').value = name; convert(); }
-function escapeHtml(s){ return (s+"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fill(name){document.getElementById('q').value=name;convert();}
 </script>
 </body>
 </html>
